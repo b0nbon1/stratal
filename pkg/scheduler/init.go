@@ -9,7 +9,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-func StartScheduler(q queue.TaskQueue, store db.Querier) {
+func StartScheduler(q queue.TaskQueue, store db.Queries) {
 	c := cron.New()
 	c.AddFunc("@every 10s", func() {
 		var jobs []db.Job
