@@ -26,8 +26,11 @@ func NewRedisQueue(addr, password string, db int, key string) *RedisQueue {
     }
 }
 
-func (rq *RedisQueue) Enqueue(task string) error {
-    return rq.client.RPush(rq.ctx, rq.key, task).Err()
+func (rq *RedisQueue) Enqueue(task any) {
+    rq.client.XAdd(rq.ctx, &redis.XAddArgs{
+		Stream: "jobs",
+		Values: map[string]interface{}{"data": task},
+	})
 }
 
 func (rq *RedisQueue) Dequeue() (string, error) {
@@ -41,7 +44,7 @@ func (rq *RedisQueue) Dequeue() (string, error) {
     return result[1], nil
 }
 
-func (rq *RedisQueue) XRead(lastID string, block int64) ([]string, error) {
+func (rq *RedisQueue) XReadGeneric(lastID string, block int64, mapper func(map[string]interface{}) (any, error)) ([]any, error) {
     args := &redis.XReadArgs{
         Streams: []string{rq.key, lastID},
         Count:   1,
@@ -57,14 +60,14 @@ func (rq *RedisQueue) XRead(lastID string, block int64) ([]string, error) {
         return nil, nil
     }
 
-    tasks := make([]string, 0, len(streams[0].Messages))
+    tasks := make([]any, 0, len(streams[0].Messages))
 
     for _, msg := range streams[0].Messages {
-        if taskVal, ok := msg.Values["task"]; ok {
-            if taskStr, valid := taskVal.(string); valid {
-                tasks = append(tasks, taskStr)
-            }
+        task, err := mapper(msg.Values)
+		if err != nil {
+            return nil, err
         }
+        tasks = append(tasks, task)
     }
     return tasks, nil
 }

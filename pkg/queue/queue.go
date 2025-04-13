@@ -1,7 +1,7 @@
 package queue
 
 type TaskQueue interface {
-    Enqueue(task string) error
+    Enqueue(task any)
     Dequeue() (string, error)
-	XRead(lastID string, block int64) ([]string, error)
+	XReadGeneric(lastID string, block int64, mapper func(map[string]interface{}) (any, error)) ([]any, error)
 }
