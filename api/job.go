@@ -6,6 +6,7 @@ import (
 
 	db "github.com/b0nbon1/temporal-lite/db/sqlc"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -17,6 +18,10 @@ type CreateJobRequest struct {
 	Status     string          `json:"status" binding:"omitempty,oneof=pending running success failed"`
 	Retries    int             `json:"retries" binding:"omitempty,gte=0"`
 	MaxRetries int             `json:"max_retries" binding:"required,gte=0"`
+}
+
+type JobIDRequestBind struct {
+	ID pgtype.UUID `uri:"id" binding:"required"`
 }
 
 func (server *Server) createJobRequest(ctx *gin.Context) {
@@ -44,4 +49,38 @@ func (server *Server) createJobRequest(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, job)
+}
+
+func (server *Server) getJobRequest(ctx *gin.Context) {
+	var req JobIDRequestBind
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	job, err := server.store.GetJob(ctx, req.ID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, job)
+}
+
+func (server *Server) listJobsRequest(ctx *gin.Context) {
+	var req db.ListJobsParams
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	jobs, err := server.store.ListJobs(ctx, req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, jobs)
 }
