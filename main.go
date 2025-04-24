@@ -25,7 +25,7 @@ func main() {
 
 	
 	server := api.NewServer(*store)
-	err = server.Start(":8080")
+	err = server.Start(":8040")
 	if err != nil {
 		log.Fatal("cannot start server:", err)
 	}

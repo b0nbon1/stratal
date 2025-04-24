@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	// "fmt"
 	"log"
 
 	db "github.com/b0nbon1/temporal-lite/db/sqlc"
@@ -18,6 +19,7 @@ func StartScheduler(q queue.TaskQueue, store db.Queries) {
 			log.Println("Error listing pending jobs:", err)
 			return
 		}
+		// fmt.Println("Pending jobs:", jobs)
 		for _, job := range jobs {
 			q.Enqueue(job)
 		}
