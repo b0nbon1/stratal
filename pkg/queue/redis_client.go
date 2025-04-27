@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -27,10 +28,14 @@ func NewRedisQueue(addr, password string, db int, key string) *RedisQueue {
 }
 
 func (rq *RedisQueue) Enqueue(task any) {
-    rq.client.XAdd(rq.ctx, &redis.XAddArgs{
+    id, err := rq.client.XAdd(rq.ctx, &redis.XAddArgs{
 		Stream: "jobs",
 		Values: map[string]interface{}{"data": task},
-	})
+	}).Result()
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("Enqueued task with ID:", id)
 }
 
 func (rq *RedisQueue) Dequeue() (string, error) {

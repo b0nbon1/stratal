@@ -2,6 +2,9 @@ package scheduler
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+
 	// "fmt"
 	"log"
 
@@ -15,13 +18,19 @@ func StartScheduler(q queue.TaskQueue, store db.Queries) {
 	c.AddFunc("@every 10s", func() {
 		var jobs []db.Job
 		jobs, err := store.ListPendingJobs(context.Background())
+		fmt.Println("Listing pending jobs")
 		if err != nil {
 			log.Println("Error listing pending jobs:", err)
 			return
 		}
-		// fmt.Println("Pending jobs:", jobs)
+		fmt.Println("Pending jobs:", len(jobs))
 		for _, job := range jobs {
-			q.Enqueue(job)
+			jobJSON, err := json.Marshal(job)
+			if err != nil {
+				panic(err)
+			}
+
+			q.Enqueue(jobJSON)
 		}
 	})
 	c.Start()
