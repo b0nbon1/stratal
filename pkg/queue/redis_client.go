@@ -3,7 +3,6 @@ package queue
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -27,15 +26,11 @@ func NewRedisQueue(addr, password string, db int, key string) *RedisQueue {
     }
 }
 
-func (rq *RedisQueue) Enqueue(task any) {
-    id, err := rq.client.XAdd(rq.ctx, &redis.XAddArgs{
-		Stream: "jobs",
-		Values: map[string]interface{}{"data": task},
-	}).Result()
+func (rq *RedisQueue) Enqueue(job []byte) {
+    err := rq.client.RPush(rq.ctx, rq.key, job).Err()
     if err != nil {
         panic(err)
     }
-    fmt.Println("Enqueued task with ID:", id)
 }
 
 func (rq *RedisQueue) Dequeue() (string, error) {
@@ -53,7 +48,7 @@ func (rq *RedisQueue) XReadGeneric(lastID string, block int64, mapper func(map[s
     args := &redis.XReadArgs{
         Streams: []string{rq.key, lastID},
         Count:   1,
-        Block:   time.Duration(block) * time.Millisecond,
+        Block:  0,
     }
 
     streams, err := rq.client.XRead(rq.ctx, args).Result()
@@ -69,11 +64,27 @@ func (rq *RedisQueue) XReadGeneric(lastID string, block int64, mapper func(map[s
 
     for _, msg := range streams[0].Messages {
         task, err := mapper(msg.Values)
+
 		if err != nil {
             return nil, err
         }
-        tasks = append(tasks, task)
+        taskID := msg.ID
+        taskMap, ok := task.(map[string]any)
+        if !ok {
+            return nil, fmt.Errorf("unexpected type %T", task)
+        }
+        taskMap["id"] = taskID
+        taskMap["data"] = task
+        tasks = append(tasks, taskMap)
     }
     return tasks, nil
+}
+
+func (rq *RedisQueue) XDelete(id string) error {
+    _, err := rq.client.XDel(rq.ctx, rq.key, id).Result()
+    if err != nil {
+        return err
+    }
+    return nil
 }
 

@@ -16,9 +16,9 @@ func NewServer(store db.Queries) *Server {
 	}
 	router := gin.Default()
 
-	router.POST("/jobs", server.createJobRequest)
-	router.GET("/jobs/:id", server.getJobRequest)
-	router.GET("/jobs", server.listJobsRequest)
+	// router.POST("/jobs", server.createJobRequest)
+	// router.GET("/jobs/:id", server.getJobRequest)
+	// router.GET("/jobs", server.listJobsRequest)
 	// router.PUT("/jobs/:id", server.updateJobRequest)
 	// router.DELETE("/jobs/:id", server.deleteJobRequest)
 	// router.POST("/jobs/:id/run", server.runJobRequest)

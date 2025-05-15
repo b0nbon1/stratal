@@ -23,11 +23,9 @@ func main() {
 	scheduler.StartScheduler(q, *store)
 	worker.StartWorker(q)
 
-	
 	server := api.NewServer(*store)
 	err = server.Start(":8040")
 	if err != nil {
 		log.Fatal("cannot start server:", err)
 	}
 }
-

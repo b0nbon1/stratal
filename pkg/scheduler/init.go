@@ -27,9 +27,8 @@ func StartScheduler(q queue.TaskQueue, store db.Queries) {
 		for _, job := range jobs {
 			jobJSON, err := json.Marshal(job)
 			if err != nil {
-				panic(err)
+				log.Println(err)
 			}
-
 			q.Enqueue(jobJSON)
 		}
 	})
