@@ -7,6 +7,7 @@ import (
 	// "log"
 	// "time"
 
+	"github.com/b0nbon1/temporal-lite/internal/processor"
 	"github.com/b0nbon1/temporal-lite/pkg/queue"
 	// "github.com/b0nbon1/temporal-lite/utils"
 )
@@ -21,10 +22,11 @@ func StartWorker(q queue.TaskQueue) {
 			fmt.Println("Error dequeuing task:", err)
 			continue
 		}
-		fmt.Println("Dequeued task:", task)
+		// fmt.Println("Dequeued task:", task)
 		// Process the task here
 		// For example, you can print the task or perform some operations on it
-		// ProcessJob(task)
+		processor.ProcessJob(task)
+		fmt.Println("Processing task:", task)
 		// Simulate some processing time
 		time.Sleep(1 * time.Second)
 		}

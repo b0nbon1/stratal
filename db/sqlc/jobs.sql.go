@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	dto "github.com/b0nbon1/temporal-lite/db/dto"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -28,17 +29,17 @@ INSERT INTO jobs (
   $5,
   $6,
   $7
-) RETURNING id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at
+) RETURNING id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at, user_id
 `
 
 type CreateJobParams struct {
-	Name       string        `json:"name"`
-	Schedule   pgtype.Text   `json:"schedule"`
-	Type       pgtype.Text   `json:"type"`
-	Config     []byte        `json:"config"`
-	Status     NullJobStatus `json:"status"`
-	Retries    pgtype.Int4   `json:"retries"`
-	MaxRetries pgtype.Int4   `json:"max_retries"`
+	Name       string               `json:"name"`
+	Schedule   pgtype.Text          `json:"schedule"`
+	Type       pgtype.Text          `json:"type"`
+	Config     dto.AutomationConfig `json:"config"`
+	Status     NullJobStatus        `json:"status"`
+	Retries    pgtype.Int4          `json:"retries"`
+	MaxRetries pgtype.Int4          `json:"max_retries"`
 }
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
@@ -63,6 +64,7 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 		&i.MaxRetries,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -78,7 +80,7 @@ func (q *Queries) DeleteJob(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getJob = `-- name: GetJob :one
-SELECT id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at FROM jobs
+SELECT id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at, user_id FROM jobs
 WHERE id = $1 LIMIT 1
 `
 
@@ -96,12 +98,13 @@ func (q *Queries) GetJob(ctx context.Context, id pgtype.UUID) (Job, error) {
 		&i.MaxRetries,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const listJobs = `-- name: ListJobs :many
-SELECT id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at FROM jobs
+SELECT id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at, user_id FROM jobs
 ORDER BY id
 LIMIT $1
 OFFSET $2
@@ -132,6 +135,7 @@ func (q *Queries) ListJobs(ctx context.Context, arg ListJobsParams) ([]Job, erro
 			&i.MaxRetries,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -144,7 +148,7 @@ func (q *Queries) ListJobs(ctx context.Context, arg ListJobsParams) ([]Job, erro
 }
 
 const listPendingJobs = `-- name: ListPendingJobs :many
-SELECT id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at FROM jobs
+SELECT id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at, user_id FROM jobs
 where status = 'pending' AND 
       (schedule IS NOT NULL OR schedule != '')
 ORDER BY created_at DESC
@@ -170,6 +174,7 @@ func (q *Queries) ListPendingJobs(ctx context.Context) ([]Job, error) {
 			&i.MaxRetries,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -188,7 +193,7 @@ SET
   retries = $3,
   updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at
+RETURNING id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at, user_id
 `
 
 type UpdateJobStatusParams struct {
@@ -211,6 +216,7 @@ func (q *Queries) UpdateJobStatus(ctx context.Context, arg UpdateJobStatusParams
 		&i.MaxRetries,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }

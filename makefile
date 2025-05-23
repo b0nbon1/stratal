@@ -4,6 +4,10 @@ createdb:
 	docker exec -it db createdb -U root simple_bank
 dropdb:
 	docker exec -it db dropdb -U root simple_bank
+
+create-migrate:
+	migrate create -ext sql -dir db/migration/ -seq init 
+
 migrateup:
 	migrate -path db/migration -database "postgresql://root:1234567890@localhost:5432/autom?sslmode=disable" -verbose up
 migratedown:

@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	dto "github.com/b0nbon1/temporal-lite/db/dto"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -56,16 +57,17 @@ func (ns NullJobStatus) Value() (driver.Value, error) {
 }
 
 type Job struct {
-	ID         pgtype.UUID        `json:"id"`
-	Name       string             `json:"name"`
-	Schedule   pgtype.Text        `json:"schedule"`
-	Type       pgtype.Text        `json:"type"`
-	Config     []byte             `json:"config"`
-	Status     NullJobStatus      `json:"status"`
-	Retries    pgtype.Int4        `json:"retries"`
-	MaxRetries pgtype.Int4        `json:"max_retries"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID         pgtype.UUID          `json:"id"`
+	Name       string               `json:"name"`
+	Schedule   pgtype.Text          `json:"schedule"`
+	Type       pgtype.Text          `json:"type"`
+	Config     dto.AutomationConfig `json:"config"`
+	Status     NullJobStatus        `json:"status"`
+	Retries    pgtype.Int4          `json:"retries"`
+	MaxRetries pgtype.Int4          `json:"max_retries"`
+	CreatedAt  pgtype.Timestamptz   `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz   `json:"updated_at"`
+	UserID     pgtype.Int4          `json:"user_id"`
 }
 
 type JobRun struct {
@@ -77,4 +79,12 @@ type JobRun struct {
 	EndedAt   pgtype.Timestamptz `json:"ended_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type User struct {
+	ID           int32            `json:"id"`
+	Username     string           `json:"username"`
+	Email        string           `json:"email"`
+	PasswordHash string           `json:"password_hash"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
 }

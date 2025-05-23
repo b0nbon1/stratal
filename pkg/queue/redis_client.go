@@ -88,3 +88,10 @@ func (rq *RedisQueue) XDelete(id string) error {
     return nil
 }
 
+func (rq *RedisQueue) MoveToDeadLetter(task []byte) {
+	dlqKey := rq.key + ":dlq"
+	err := rq.client.RPush(rq.ctx, dlqKey, task).Err()
+	if err != nil {
+		fmt.Println("Error moving task to DLQ:", err)
+	}
+}

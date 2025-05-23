@@ -23,7 +23,7 @@ func StartScheduler(q queue.TaskQueue, store db.Queries) {
 			log.Println("Error listing pending jobs:", err)
 			return
 		}
-		fmt.Println("Pending jobs:", len(jobs))
+		fmt.Println("Pending jobs:", jobs)
 		for _, job := range jobs {
 			jobJSON, err := json.Marshal(job)
 			if err != nil {

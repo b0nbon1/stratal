@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
+	"github.com/b0nbon1/temporal-lite/db/dto"
 	db "github.com/b0nbon1/temporal-lite/db/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -32,17 +34,25 @@ func (server *Server) createJobRequest(ctx *gin.Context) {
 		return
 	}
 
+	var config dto.AutomationConfig
+	err := json.Unmarshal(req.Config, &config)
+	if err != nil {
+		log.Printf("failed to decode config: %v", err)
+		return
+	}
+
 	arg := db.CreateJobParams{
 		Name:       req.Name,
 		Schedule:   pgtype.Text{String: req.Schedule, Valid: true},
 		Type:       pgtype.Text{String: req.Type, Valid: true},
-		Config:     req.Config,
+		Config:     config,
 		Status:     db.NullJobStatus{JobStatus: db.JobStatusPending, Valid: true},
 		Retries:    pgtype.Int4{Int32: int32(req.Retries), Valid: true},
-		MaxRetries: pgtype.Int4{Int32:int32(req.MaxRetries), Valid: true},
+		MaxRetries: pgtype.Int4{Int32: int32(req.MaxRetries), Valid: true},
 	}
 
 	job, err := server.store.CreateJob(ctx, arg)
+
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
