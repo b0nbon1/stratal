@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -20,6 +21,11 @@ type CreateJobRequest struct {
 	Status     string          `json:"status" binding:"omitempty,oneof=pending running success failed"`
 	Retries    int             `json:"retries" binding:"omitempty,gte=0"`
 	MaxRetries int             `json:"max_retries" binding:"required,gte=0"`
+}
+
+type ListJobsParams struct {
+    Limit  int32 `form:"limit" json:"limit"`
+    Offset int32 `form:"offset" json:"offset"`
 }
 
 type JobIDRequestBind struct {
@@ -81,13 +87,18 @@ func (server *Server) getJobRequest(ctx *gin.Context) {
 }
 
 func (server *Server) listJobsRequest(ctx *gin.Context) {
-	var req db.ListJobsParams
+	var req ListJobsParams
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+	fmt.Println("ListJobsParams:", req)
+	dbParams := db.ListJobsParams{
+		Limit:  req.Limit,
+		Offset: req.Offset,
+	}
+	jobs, err := server.store.ListJobs(ctx, dbParams)
 
-	jobs, err := server.store.ListJobs(ctx, req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

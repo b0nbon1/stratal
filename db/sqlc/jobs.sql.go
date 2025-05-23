@@ -105,7 +105,7 @@ func (q *Queries) GetJob(ctx context.Context, id pgtype.UUID) (Job, error) {
 
 const listJobs = `-- name: ListJobs :many
 SELECT id, name, schedule, type, config, status, retries, max_retries, created_at, updated_at, user_id FROM jobs
-ORDER BY id
+ORDER BY id DESC
 LIMIT $1
 OFFSET $2
 `

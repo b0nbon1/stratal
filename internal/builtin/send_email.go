@@ -89,7 +89,6 @@ func SendEmailTask(params map[string]string) error {
 func buildMimeEmail(from string, to []string, subject, html, text string) string {
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n"
 	if text != "" {
-		// Add multipart with text fallback
 		boundary := "mixed-boundary"
 		return fmt.Sprintf(`From: %s
 To: %s

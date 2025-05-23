@@ -23,7 +23,7 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListJobs :many
 SELECT * FROM jobs
-ORDER BY id
+ORDER BY id DESC
 LIMIT $1
 OFFSET $2;
 
