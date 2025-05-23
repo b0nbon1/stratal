@@ -12,10 +12,15 @@ func SendEmailTask(params map[string]string) error {
 		"smtp_host", "smtp_port", "smtp_user", "smtp_password",
 		"from", "to", "subject", "body_html",
 	}
+	missing := []string{}
 	for _, key := range required {
 		if _, ok := params[key]; !ok {
-			return fmt.Errorf("missing required parameter: %s", key)
+			missing = append(missing, key)
 		}
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required parameters: %s", strings.Join(missing, ", "))
 	}
 
 	smtpHost := params["smtp_host"]

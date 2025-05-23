@@ -1,7 +1,7 @@
 package api
 
 import (
-	db "github.com/b0nbon1/temporal-lite/db/sqlc"
+	db "github.com/b0nbon1/stratal/db/sqlc"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,7 +12,7 @@ type Server struct {
 
 func NewServer(store db.Queries) *Server {
 	server := &Server{
-		store:  store,
+		store: store,
 	}
 	router := gin.Default()
 
@@ -26,7 +26,6 @@ func NewServer(store db.Queries) *Server {
 	// router.POST("/jobs/:id/retry", server.retryJobRequest)
 	// router.POST("/jobs/:id/force", server.forceJobRequest)
 	// router.POST("/jobs/:id/force-stop", server.forceStopJobRequest)
-
 
 	server.router = router
 

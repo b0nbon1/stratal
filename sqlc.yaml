@@ -16,6 +16,6 @@ sql:
         overrides:
           - column: jobs.config
             go_type:
-              import: github.com/b0nbon1/temporal-lite/db/dto
+              import: github.com/b0nbon1/stratal/db/dto
               package: dto
               type: AutomationConfig

@@ -8,8 +8,8 @@ import (
 	// "fmt"
 	"log"
 
-	db "github.com/b0nbon1/temporal-lite/db/sqlc"
-	"github.com/b0nbon1/temporal-lite/pkg/queue"
+	db "github.com/b0nbon1/stratal/db/sqlc"
+	"github.com/b0nbon1/stratal/pkg/queue"
 	"github.com/robfig/cron/v3"
 )
 

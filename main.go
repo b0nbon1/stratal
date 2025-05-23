@@ -4,12 +4,12 @@ import (
 	"context"
 	"log"
 
-	"github.com/b0nbon1/temporal-lite/api"
-	db "github.com/b0nbon1/temporal-lite/db/sqlc"
-	"github.com/b0nbon1/temporal-lite/pkg/postgres"
-	"github.com/b0nbon1/temporal-lite/pkg/queue"
-	"github.com/b0nbon1/temporal-lite/pkg/scheduler"
-	"github.com/b0nbon1/temporal-lite/pkg/worker"
+	"github.com/b0nbon1/stratal/api"
+	db "github.com/b0nbon1/stratal/db/sqlc"
+	"github.com/b0nbon1/stratal/pkg/postgres"
+	"github.com/b0nbon1/stratal/pkg/queue"
+	"github.com/b0nbon1/stratal/pkg/scheduler"
+	"github.com/b0nbon1/stratal/pkg/worker"
 )
 
 func main() {

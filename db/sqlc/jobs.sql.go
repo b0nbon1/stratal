@@ -8,7 +8,7 @@ package db
 import (
 	"context"
 
-	dto "github.com/b0nbon1/temporal-lite/db/dto"
+	dto "github.com/b0nbon1/stratal/db/dto"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 

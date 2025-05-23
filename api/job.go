@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/b0nbon1/temporal-lite/db/dto"
-	db "github.com/b0nbon1/temporal-lite/db/sqlc"
+	"github.com/b0nbon1/stratal/db/dto"
+	db "github.com/b0nbon1/stratal/db/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"

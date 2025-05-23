@@ -1,4 +1,4 @@
-module github.com/b0nbon1/temporal-lite
+module github.com/b0nbon1/stratal
 
 go 1.23.0
 
