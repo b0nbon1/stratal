@@ -1,12 +1,10 @@
 package worker
 
 import (
+	"encoding/json"
 	"fmt"
-	"time"
 
-	// "log"
-	// "time"
-
+	db "github.com/b0nbon1/stratal/db/sqlc"
 	"github.com/b0nbon1/stratal/internal/processor"
 	"github.com/b0nbon1/stratal/pkg/queue"
 	// "github.com/b0nbon1/stratal/utils"
@@ -18,17 +16,19 @@ func StartWorker(q queue.TaskQueue) {
 		for {
 			fmt.Println("Worker started ==============")
 			task, err := q.Dequeue()
+
 			if err != nil {
 				fmt.Println("Error dequeuing task:", err)
 				continue
 			}
-			// fmt.Println("Dequeued task:", task)
-			// Process the task here
-			// For example, you can print the task or perform some operations on it
-			processor.ProcessJob(task)
-			fmt.Println("Processing task:", task)
-			// Simulate some processing time
-			time.Sleep(1 * time.Second)
+			var job db.Job
+			err = json.Unmarshal([]byte(task), &job)
+			if err != nil {
+				fmt.Println("Failed to unmarshal:", err)
+				continue
+			}
+
+			processor.ProcessJob(job)
 		}
 	}()
 

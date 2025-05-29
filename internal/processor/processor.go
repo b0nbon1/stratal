@@ -1,9 +1,30 @@
 package processor
 
-import "fmt"
+import (
+	"fmt"
 
-func ProcessJob(task any) {
-	// Process the task here
-	// For example, you can print the task or perform some operations on it
-	fmt.Println("Processing task:", task)
+	db "github.com/b0nbon1/stratal/db/sqlc"
+	"github.com/b0nbon1/stratal/utils"
+)
+
+func ProcessJob(job db.Job) {
+	fmt.Println("Processing job:", job.ID)
+
+	sortedTasks, err := utils.TopoSort(job.Config.Tasks)
+	if err != nil {
+		fmt.Println("Error sorting tasks:", err)
+		return
+	}
+	fmt.Println("Sorted tasks:", sortedTasks)
+
+	for _, task := range sortedTasks {
+	err := ExecuteTask(task)
+	if err != nil {
+		fmt.Printf("Task %s failed: %v", task.ID, err)
+		// Optionally stop or continue based on failure policy
+		break
+	}
+}
+	
+
 }
