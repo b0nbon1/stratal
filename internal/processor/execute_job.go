@@ -12,7 +12,7 @@ func ExecuteTask(task dto.TaskConfig) error {
 	case "builtin":
 		return builtin.RunBuiltinTask(task.Name, task.Parameters)
 	case "custom":
-		return RunCustomScript(task.Script)
+		return builtin.RunCustomScript(task.Script)
 	default:
 		return fmt.Errorf("unsupported task type: %s", task.Type)
 	}
