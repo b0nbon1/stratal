@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	db "github.com/b0nbon1/stratal/db/sqlc"
-	"github.com/b0nbon1/stratal/utils"
+	"github.com/b0nbon1/stratal/pkg/utils"
 )
 
 func ProcessJob(job db.Job) {

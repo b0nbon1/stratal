@@ -6,8 +6,7 @@ import (
 
 	db "github.com/b0nbon1/stratal/db/sqlc"
 	"github.com/b0nbon1/stratal/internal/processor"
-	"github.com/b0nbon1/stratal/pkg/queue"
-	// "github.com/b0nbon1/stratal/utils"
+	"github.com/b0nbon1/stratal/internal/queue"
 )
 
 func StartWorker(q queue.TaskQueue) {

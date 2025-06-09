@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"encoding/json"
@@ -11,7 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/b0nbon1/stratal/pkg/utils"
 )
+
+type JobHandler struct {
+	store *db.Queries
+}
 
 type CreateJobRequest struct {
 	Name       string          `json:"name" binding:"required"`
@@ -32,11 +37,15 @@ type JobIDRequestBind struct {
 	ID pgtype.UUID `uri:"id" binding:"required"`
 }
 
-func (server *Server) createJobRequest(ctx *gin.Context) {
+func NewJobHandler(store *db.Queries) *JobHandler {
+	return &JobHandler{store: store}
+}
+
+func (h *JobHandler) CreateJob(ctx *gin.Context) {
 	var req CreateJobRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, utils.ErrorResponse(err))
 		return
 	}
 
@@ -57,39 +66,39 @@ func (server *Server) createJobRequest(ctx *gin.Context) {
 		MaxRetries: pgtype.Int4{Int32: int32(req.MaxRetries), Valid: true},
 	}
 
-	job, err := server.store.CreateJob(ctx, arg)
+	job, err := h.store.CreateJob(ctx, arg)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, utils.ErrorResponse(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, job)
 }
 
-func (server *Server) getJobRequest(ctx *gin.Context) {
+func (h *JobHandler) GetJobRequest(ctx *gin.Context) {
 	var req JobIDRequestBind
 	if err := ctx.ShouldBindUri(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, utils.ErrorResponse(err))
 		return
 	}
 
-	job, err := server.store.GetJob(ctx, req.ID)
+	job, err := h.store.GetJob(ctx, req.ID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, utils.ErrorResponse(err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, utils.ErrorResponse(err))
 		return
 	}
 	ctx.JSON(http.StatusOK, job)
 }
 
-func (server *Server) listJobsRequest(ctx *gin.Context) {
+func (h *JobHandler) ListJobs(ctx *gin.Context) {
 	var req ListJobsParams
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, utils.ErrorResponse(err))
 		return
 	}
 	fmt.Println("ListJobsParams:", req)
@@ -97,10 +106,10 @@ func (server *Server) listJobsRequest(ctx *gin.Context) {
 		Limit:  req.Limit,
 		Offset: req.Offset,
 	}
-	jobs, err := server.store.ListJobs(ctx, dbParams)
+	jobs, err := h.store.ListJobs(ctx, dbParams)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, utils.ErrorResponse(err))
 		return
 	}
 	ctx.JSON(http.StatusOK, jobs)

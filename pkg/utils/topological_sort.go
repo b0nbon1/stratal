@@ -6,14 +6,13 @@ import (
 	"github.com/b0nbon1/stratal/db/dto"
 )
 
+// sort the tasks inorder of execuations depending on which depends on the other
 func TopoSort(tasks []dto.TaskConfig) ([]dto.TaskConfig, error) {
-	// Map ID to TaskConfig
 	idToTask := make(map[string]dto.TaskConfig)
 	for _, task := range tasks {
 		idToTask[task.ID] = task
 	}
 
-	// Build adjacency list
 	graph := make(map[string][]string)
 	inDegree := make(map[string]int)
 
@@ -27,7 +26,6 @@ func TopoSort(tasks []dto.TaskConfig) ([]dto.TaskConfig, error) {
 		}
 	}
 
-	// Queue for zero in-degree nodes
 	var queue []string
 	for id, deg := range inDegree {
 		if deg == 0 {

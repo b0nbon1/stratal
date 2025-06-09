@@ -7,7 +7,7 @@ import (
 	"log"
 
 	db "github.com/b0nbon1/stratal/db/sqlc"
-	"github.com/b0nbon1/stratal/pkg/queue"
+	"github.com/b0nbon1/stratal/internal/queue"
 	"github.com/robfig/cron/v3"
 )
 
