@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterJobRoutes(router *gin.Engine, store *db.Queries) {
+func RegisterJobRoutes(rg *gin.RouterGroup, store *db.Queries) {
 	jobHandler := handlers.NewJobHandler(store)
 
-	jobRoutes := router.Group("/jobs")
+	jobRoutes := rg.Group("/jobs")
 	{
 		jobRoutes.POST("/", jobHandler.CreateJob)
 		jobRoutes.GET("/:id", jobHandler.GetJobRequest)

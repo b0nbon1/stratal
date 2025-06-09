@@ -70,6 +70,15 @@ type Job struct {
 	UserID     pgtype.Int4          `json:"user_id"`
 }
 
+type JobLog struct {
+	ID        int32              `json:"id"`
+	JobID     pgtype.UUID        `json:"job_id"`
+	LogLevel  string             `json:"log_level"`
+	Message   string             `json:"message"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type JobRun struct {
 	ID        pgtype.UUID        `json:"id"`
 	JobID     pgtype.UUID        `json:"job_id"`

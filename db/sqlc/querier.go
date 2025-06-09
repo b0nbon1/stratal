@@ -12,11 +12,15 @@ import (
 
 type Querier interface {
 	CreateJob(ctx context.Context, arg CreateJobParams) (Job, error)
+	CreateJobLog(ctx context.Context, arg CreateJobLogParams) (JobLog, error)
 	CreateJobRun(ctx context.Context, arg CreateJobRunParams) (JobRun, error)
 	DeleteJob(ctx context.Context, id pgtype.UUID) error
 	DeleteJobRun(ctx context.Context, id pgtype.UUID) error
 	GetJob(ctx context.Context, id pgtype.UUID) (Job, error)
+	GetJobLog(ctx context.Context, id int32) (JobLog, error)
 	GetJobRun(ctx context.Context, id pgtype.UUID) (JobRun, error)
+	GetLogsByJob(ctx context.Context, jobID pgtype.UUID) ([]JobLog, error)
+	ListJobLogs(ctx context.Context, arg ListJobLogsParams) ([]Job, error)
 	ListJobRun(ctx context.Context, arg ListJobRunParams) ([]JobRun, error)
 	ListJobs(ctx context.Context, arg ListJobsParams) ([]Job, error)
 	ListPendingJobs(ctx context.Context) ([]Job, error)

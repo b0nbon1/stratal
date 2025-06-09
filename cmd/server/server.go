@@ -17,7 +17,15 @@ func NewServer(store *db.Queries) *Server {
 	}
 	router := gin.Default()
 
-	routes.RegisterJobRoutes(router, store)
+	api := router.Group("/api")
+	{
+		routes.RegisterJobRoutes(api, store)
+	}
+
+	router.Static("/assets", "./client/public")
+	router.NoRoute(func(c *gin.Context) {
+		c.File("./client/dist/index.html")
+	})
 
 	server.router = router
 
