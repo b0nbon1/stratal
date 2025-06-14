@@ -1,4 +1,4 @@
-CLIENT_DIR := client
+CLIENT_DIR := web-ui
 VITE := npx vite
 
 # start db 
@@ -15,7 +15,15 @@ dropdb:
 
 # create new migration for db
 create-migrate:
-	migrate create -ext sql -dir db/migration/ -seq init 
+	migrate create -ext sql -dir internal/storage/db/migration/ -seq init
+# create new migration for db with a name
+create-migrate-with-name:
+	@read -p "Enter migration name: " name; \
+	if [ -z "$$name" ]; then \
+		echo "Migration name cannot be empty"; \
+		exit 1; \
+	fi; \
+	migrate create -ext sql -dir db/migration/ -seq "$$name"
 
 # run migrations
 migrateup:
@@ -47,6 +55,9 @@ build_front:
 
 clean_front:
 	cd $(CLIENT_DIR) && rm -rf dist
+
+build_worker:
+	env GOOS=linux CGO_ENABLED=0 go build -o bin/worker cmd/worker/main.go
 
 
 # create mockdb for testing
