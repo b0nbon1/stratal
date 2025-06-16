@@ -94,6 +94,88 @@ func (q *Queries) GetJob(ctx context.Context, id pgtype.UUID) (GetJobRow, error)
 	return i, err
 }
 
+const getJobWithTasks = `-- name: GetJobWithTasks :one
+SELECT j.id, j.user_id, j.name, j.description, j.source, j.created_at,
+       json_agg(t.*) AS tasks
+FROM jobs j
+LEFT JOIN tasks t ON j.id = t.job_id
+WHERE j.id = $1
+GROUP BY j.id
+`
+
+type GetJobWithTasksRow struct {
+	ID          pgtype.UUID        `json:"id"`
+	UserID      pgtype.UUID        `json:"user_id"`
+	Name        string             `json:"name"`
+	Description pgtype.Text        `json:"description"`
+	Source      string             `json:"source"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Tasks       []byte             `json:"tasks"`
+}
+
+func (q *Queries) GetJobWithTasks(ctx context.Context, id pgtype.UUID) (GetJobWithTasksRow, error) {
+	row := q.db.QueryRow(ctx, getJobWithTasks, id)
+	var i GetJobWithTasksRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Description,
+		&i.Source,
+		&i.CreatedAt,
+		&i.Tasks,
+	)
+	return i, err
+}
+
+const listJobs = `-- name: ListJobs :many
+SELECT id, user_id, name, description, source, created_at
+FROM jobs
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListJobsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type ListJobsRow struct {
+	ID          pgtype.UUID        `json:"id"`
+	UserID      pgtype.UUID        `json:"user_id"`
+	Name        string             `json:"name"`
+	Description pgtype.Text        `json:"description"`
+	Source      string             `json:"source"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) ListJobs(ctx context.Context, arg ListJobsParams) ([]ListJobsRow, error) {
+	rows, err := q.db.Query(ctx, listJobs, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListJobsRow{}
+	for rows.Next() {
+		var i ListJobsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Description,
+			&i.Source,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateJob = `-- name: UpdateJob :exec
 UPDATE jobs
 SET name = $2, description = $3, source = $4, raw_payload = $5, updated_at = CURRENT_TIMESTAMP

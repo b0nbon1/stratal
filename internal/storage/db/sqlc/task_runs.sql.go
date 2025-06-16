@@ -12,7 +12,6 @@ import (
 )
 
 const createTaskRun = `-- name: CreateTaskRun :one
-
 INSERT INTO task_runs (id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message, created_at
@@ -43,17 +42,6 @@ type CreateTaskRunRow struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
-// job_run_id UUID REFERENCES job_runs (id) ON DELETE CASCADE,
-//
-//	task_id UUID REFERENCES tasks (id) ON DELETE CASCADE,
-//	status TEXT CHECK (
-//	    status IN ('pending', 'running', 'failed', 'completed')
-//	),
-//	started_at TIMESTAMP,
-//	finished_at TIMESTAMP,
-//	exit_code INTEGER,
-//	output TEXT,
-//	error_message TEXT,
 func (q *Queries) CreateTaskRun(ctx context.Context, arg CreateTaskRunParams) (CreateTaskRunRow, error) {
 	row := q.db.QueryRow(ctx, createTaskRun,
 		arg.ID,

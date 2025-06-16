@@ -29,7 +29,7 @@ func main() {
 	q := queue.NewRedisQueue("localhost:6379", "", 0, "job_runs")
 
 
-    go worker.StartWorker(q, *store)
+    go worker.StartWorker(ctx, q, *store)
     fmt.Println("Worker started successfully")
 
     quitChannel := make(chan os.Signal, 1)

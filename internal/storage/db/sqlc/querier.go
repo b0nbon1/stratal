@@ -15,16 +15,6 @@ type Querier interface {
 	CreateJob(ctx context.Context, arg CreateJobParams) (CreateJobRow, error)
 	CreateJobRun(ctx context.Context, arg CreateJobRunParams) (CreateJobRunRow, error)
 	CreateTask(ctx context.Context, arg CreateTaskParams) (CreateTaskRow, error)
-	// job_run_id UUID REFERENCES job_runs (id) ON DELETE CASCADE,
-	//     task_id UUID REFERENCES tasks (id) ON DELETE CASCADE,
-	//     status TEXT CHECK (
-	//         status IN ('pending', 'running', 'failed', 'completed')
-	//     ),
-	//     started_at TIMESTAMP,
-	//     finished_at TIMESTAMP,
-	//     exit_code INTEGER,
-	//     output TEXT,
-	//     error_message TEXT,
 	CreateTaskRun(ctx context.Context, arg CreateTaskRunParams) (CreateTaskRunRow, error)
 	DeleteJob(ctx context.Context, id pgtype.UUID) error
 	DeleteJobRun(ctx context.Context, id pgtype.UUID) error
@@ -32,9 +22,11 @@ type Querier interface {
 	DeleteTaskRun(ctx context.Context, id pgtype.UUID) error
 	GetJob(ctx context.Context, id pgtype.UUID) (GetJobRow, error)
 	GetJobRun(ctx context.Context, id pgtype.UUID) (GetJobRunRow, error)
+	GetJobWithTasks(ctx context.Context, id pgtype.UUID) (GetJobWithTasksRow, error)
 	GetTask(ctx context.Context, id pgtype.UUID) (GetTaskRow, error)
 	GetTaskRun(ctx context.Context, id pgtype.UUID) (GetTaskRunRow, error)
 	ListJobRuns(ctx context.Context, jobID pgtype.UUID) ([]ListJobRunsRow, error)
+	ListJobs(ctx context.Context, arg ListJobsParams) ([]ListJobsRow, error)
 	ListTaskRuns(ctx context.Context, jobRunID pgtype.UUID) ([]ListTaskRunsRow, error)
 	ListTaskRunsByJob(ctx context.Context, id pgtype.UUID) ([]ListTaskRunsByJobRow, error)
 	ListTasks(ctx context.Context, jobID pgtype.UUID) ([]ListTasksRow, error)

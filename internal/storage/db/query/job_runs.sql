@@ -32,3 +32,5 @@ WHERE id = $1;
 -- name: DeleteJobRun :exec
 DELETE FROM job_runs
 WHERE id = $1;
+
+
