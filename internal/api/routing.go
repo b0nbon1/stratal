@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/b0nbon1/stratal/internal/api/router"
 )
 
-func (httpServer *HTTPServer) registerRoutes() *router.Router {
+func (hs *HTTPServer) registerRoutes() *router.Router {
 	r := router.NewRouter()
 
 	api := r.Group("/api", middleware.Logging())
@@ -20,6 +21,21 @@ func (httpServer *HTTPServer) registerRoutes() *router.Router {
 		})
 	})
 
+	v1 := r.Group("/v1")
+	v1.Post("/jobs", hs.CreateJob)
+
 	return r
+}
+
+func parseJSON(r *http.Request, v interface{}) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(v)
+}
+
+func respondJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
 }
 

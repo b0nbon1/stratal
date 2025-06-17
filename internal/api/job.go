@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -49,20 +48,5 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println(job)
-
-	
-
-
 }
 
-func parseJSON(r *http.Request, v interface{}) error {
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	return decoder.Decode(v)
-}
-
-func respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
-}
