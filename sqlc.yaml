@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "./db/query/"
-    schema: "./db/migration/"
+    queries: "./internal/storage/db/query/"
+    schema: "./internal/storage/db/migration/"
     gen:
       go:
         package: "db"
-        out: "./db/sqlc"
+        out: "./internal/storage/db/sqlc"
         sql_package: "pgx/v5"
         emit_json_tags: true
         emit_prepared_queries: false
@@ -14,8 +14,9 @@ sql:
         emit_exact_table_names: false
         emit_empty_slices: true
         overrides:
-          - column: jobs.config
-            go_type:
-              import: github.com/b0nbon1/stratal/db/dto
+          - column: tasks.config
+            go_type: 
+              import: github.com/b0nbon1/stratal/internal/storage/db/dto
               package: dto
-              type: AutomationConfig
+              type: TaskConfig
+

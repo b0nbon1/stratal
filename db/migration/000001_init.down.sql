@@ -1,3 +1,0 @@
-ALTER TABLE job_runs DROP CONSTRAINT fk_job_runs_job;
-DROP TABLE IF EXISTS job_runs;
-DROP TABLE IF EXISTS jobs;

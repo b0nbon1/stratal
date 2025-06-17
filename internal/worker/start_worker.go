@@ -1,34 +1,38 @@
 package worker
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 
-	db "github.com/b0nbon1/stratal/db/sqlc"
-	"github.com/b0nbon1/stratal/internal/processor"
 	"github.com/b0nbon1/stratal/internal/queue"
+	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
+	"github.com/b0nbon1/stratal/pkg/utils"
 )
 
-func StartWorker(q queue.TaskQueue) {
+func StartWorker(ctx context.Context, q queue.TaskQueue, store db.Queries) {
 	fmt.Println("Starting worker...")
-	go func() {
-		for {
-			fmt.Println("Worker started ==============")
-			task, err := q.Dequeue()
-
-			if err != nil {
-				fmt.Println("Error dequeuing task:", err)
-				continue
-			}
-			var job db.Job
-			err = json.Unmarshal([]byte(task), &job)
-			if err != nil {
-				fmt.Println("Failed to unmarshal:", err)
-				continue
-			}
-
-			processor.ProcessJob(job)
+	for {
+		fmt.Println("Worker started ==============")
+		jobRunId, err := q.Dequeue()
+		if err != nil {
+			fmt.Println("Error dequeuing job_run:", err)
+			continue
 		}
-	}()
 
+		jobRunIdUUID, err := utils.ParseUUID(jobRunId)
+		if err != nil {
+			fmt.Println("Error parsing job_run_id:", err)
+			continue
+		}
+		
+
+		jobRun, err := store.GetJobRun(ctx, jobRunIdUUID)
+		if err != nil {
+			fmt.Println("Error getting job_run:", err)
+			continue
+		}
+
+
+		fmt.Println(jobRun)
+	}
 }
