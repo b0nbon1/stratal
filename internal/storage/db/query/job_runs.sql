@@ -33,4 +33,13 @@ WHERE id = $1;
 DELETE FROM job_runs
 WHERE id = $1;
 
+-- name: JobRunsWithTasks :one
+SELECT jr.id, jr.job_id, jr.status, jr.started_at, jr.finished_at, jr.error_message, jr.triggered_by, jr.metadata, jr.created_at,
+       json_agg(tr.*) AS task_runs
+FROM job_runs jr
+LEFT JOIN task_runs tr ON jr.id = tr.job_run_id
+WHERE jr.id = $1
+GROUP BY jr.id;
+
+
 

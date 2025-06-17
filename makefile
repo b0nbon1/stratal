@@ -7,7 +7,7 @@ postgres:
 
 # create db 
 createdb:
-	docker exec -it db createdb -U root stratal
+	docker exec -it postgresdb createdb -U root stratal
 
 # drop the db
 dropdb:
@@ -27,11 +27,11 @@ create-migrate-with-name:
 
 # run migrations
 migrateup:
-	migrate -path db/migration -database "postgresql://root:1234567890@localhost:5432/autom?sslmode=disable" -verbose up
+	migrate -path internal/storage/db/migration -database "postgresql://root:1234567890@localhost:5432/stratal?sslmode=disable" -verbose up
 
 # spin down migrations
 migratedown:
-	migrate -path db/migration -database "postgresql://root:1234567890@localhost:5432/autom?sslmode=disable" -verbose down
+	migrate -path internal/storage/db/migration -database "postgresql://root:1234567890@localhost:5432/stratal?sslmode=disable" -verbose down
 
 # generate new sqlc data models changes
 sqlc:
@@ -59,6 +59,11 @@ clean_front:
 build_worker:
 	env GOOS=linux CGO_ENABLED=0 go build -o bin/worker cmd/worker/main.go
 
+run_worker_dev:
+	go run cmd/worker/main.go
+	
+run_server_dev:
+	go run cmd/server/main.go
 
 # create mockdb for testing
 mock:

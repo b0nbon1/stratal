@@ -111,6 +111,46 @@ func (q *Queries) GetJobRun(ctx context.Context, id pgtype.UUID) (GetJobRunRow, 
 	return i, err
 }
 
+const jobRunsWithTasks = `-- name: JobRunsWithTasks :one
+SELECT jr.id, jr.job_id, jr.status, jr.started_at, jr.finished_at, jr.error_message, jr.triggered_by, jr.metadata, jr.created_at,
+       json_agg(tr.*) AS task_runs
+FROM job_runs jr
+LEFT JOIN task_runs tr ON jr.id = tr.job_run_id
+WHERE jr.id = $1
+GROUP BY jr.id
+`
+
+type JobRunsWithTasksRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	JobID        pgtype.UUID        `json:"job_id"`
+	Status       pgtype.Text        `json:"status"`
+	StartedAt    pgtype.Timestamp   `json:"started_at"`
+	FinishedAt   pgtype.Timestamp   `json:"finished_at"`
+	ErrorMessage pgtype.Text        `json:"error_message"`
+	TriggeredBy  pgtype.Text        `json:"triggered_by"`
+	Metadata     []byte             `json:"metadata"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	TaskRuns     []byte             `json:"task_runs"`
+}
+
+func (q *Queries) JobRunsWithTasks(ctx context.Context, id pgtype.UUID) (JobRunsWithTasksRow, error) {
+	row := q.db.QueryRow(ctx, jobRunsWithTasks, id)
+	var i JobRunsWithTasksRow
+	err := row.Scan(
+		&i.ID,
+		&i.JobID,
+		&i.Status,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.ErrorMessage,
+		&i.TriggeredBy,
+		&i.Metadata,
+		&i.CreatedAt,
+		&i.TaskRuns,
+	)
+	return i, err
+}
+
 const listJobRuns = `-- name: ListJobRuns :many
 SELECT id, job_id, status, started_at, finished_at, error_message, triggered_by, metadata, created_at
 FROM job_runs

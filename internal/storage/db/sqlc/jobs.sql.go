@@ -12,14 +12,12 @@ import (
 )
 
 const createJob = `-- name: CreateJob :one
-INSERT INTO jobs (id, user_id, name, description, source, raw_payload)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO jobs (name, description, source, raw_payload)
+VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, name, description, source, created_at
 `
 
 type CreateJobParams struct {
-	ID          pgtype.UUID `json:"id"`
-	UserID      pgtype.UUID `json:"user_id"`
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
 	Source      string      `json:"source"`
@@ -37,8 +35,6 @@ type CreateJobRow struct {
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (CreateJobRow, error) {
 	row := q.db.QueryRow(ctx, createJob,
-		arg.ID,
-		arg.UserID,
 		arg.Name,
 		arg.Description,
 		arg.Source,
