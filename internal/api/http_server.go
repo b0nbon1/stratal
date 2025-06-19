@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -14,14 +15,20 @@ type HTTPServer struct {
 	mtx           sync.Mutex
 	router        *router.Router
 	addr          string
-	store         *db.Queries
+	store         *db.SQLStore
 	Server        *http.Server
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
-func NewHTTPServer(addr string, store *db.Queries) *HTTPServer {
+func NewHTTPServer(addr string, store *db.SQLStore) *HTTPServer {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	s := &HTTPServer{
 		addr:  addr,
 		store: store,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
 	return s

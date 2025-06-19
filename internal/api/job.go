@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -32,21 +31,35 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 500, nil)
 		return
 	}
-	ctx := context.Background()
 
 	// create the job, which will be a blue_print
-	job, err := hs.store.CreateJob(ctx, db.CreateJobParams{
+	jobParam := db.CreateJobParams{
 		Name: reqBodyJob.Name,
 		Description: pgtype.Text{String: reqBodyJob.Description, Valid: true},
 		Source: reqBodyJob.Source,
 		RawPayload: reqBodyJob.RawPayload,
-	})
+	}
+	
+	var taskParams []db.CreateTaskParams
+	for _, task := range reqBodyJob.Tasks {
+		taskParams = append(taskParams, db.CreateTaskParams{
+			Name:   task.Name,
+			Type:   task.Type,
+			Order:  task.Order,
+			Config: task.Config,
+		})
+	}
 
+	
+	data, err := hs.store.CreateJobWithTasksTx(hs.ctx, jobParam, taskParams)
 	if err != nil {
-		respondJSON(w, 500, nil)
+		respondJSON(w, 500, map[string]interface{}{
+			"message": fmt.Errorf("create job with tasks failed: %w", err),
+		})
 		return
 	}
 
-	fmt.Println(job)
+	respondJSON(w, 201, data)
+	return
 }
 

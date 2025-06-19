@@ -87,13 +87,12 @@ func (q *Queries) CreateBulkTasks(ctx context.Context, arg CreateBulkTasksParams
 }
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO tasks (id, job_id, name, type, config, "order")
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO tasks (job_id, name, type, config, "order")
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, job_id, name, type, config, "order", created_at
 `
 
 type CreateTaskParams struct {
-	ID     pgtype.UUID    `json:"id"`
 	JobID  pgtype.UUID    `json:"job_id"`
 	Name   string         `json:"name"`
 	Type   string         `json:"type"`
@@ -113,7 +112,6 @@ type CreateTaskRow struct {
 
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (CreateTaskRow, error) {
 	row := q.db.QueryRow(ctx, createTask,
-		arg.ID,
 		arg.JobID,
 		arg.Name,
 		arg.Type,

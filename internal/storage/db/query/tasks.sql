@@ -1,6 +1,6 @@
 -- name: CreateTask :one
-INSERT INTO tasks (id, job_id, name, type, config, "order")
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO tasks (job_id, name, type, config, "order")
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, job_id, name, type, config, "order", created_at;
 
 -- name: CreateBulkTasks :many
