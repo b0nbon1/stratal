@@ -172,6 +172,45 @@ func (q *Queries) GetTask(ctx context.Context, id pgtype.UUID) (GetTaskRow, erro
 	return i, err
 }
 
+const getTasksByJobID = `-- name: GetTasksByJobID :many
+SELECT id, job_id, name, type
+FROM tasks
+WHERE job_id = $1
+ORDER BY "order"
+`
+
+type GetTasksByJobIDRow struct {
+	ID    pgtype.UUID `json:"id"`
+	JobID pgtype.UUID `json:"job_id"`
+	Name  string      `json:"name"`
+	Type  string      `json:"type"`
+}
+
+func (q *Queries) GetTasksByJobID(ctx context.Context, jobID pgtype.UUID) ([]GetTasksByJobIDRow, error) {
+	rows, err := q.db.Query(ctx, getTasksByJobID, jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetTasksByJobIDRow{}
+	for rows.Next() {
+		var i GetTasksByJobIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.JobID,
+			&i.Name,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTasks = `-- name: ListTasks :many
 SELECT id, job_id, name, type, config, "order", created_at
 FROM tasks

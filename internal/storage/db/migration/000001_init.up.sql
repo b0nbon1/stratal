@@ -38,7 +38,7 @@ CREATE TABLE job_runs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     job_id UUID REFERENCES jobs (id) ON DELETE CASCADE,
     status TEXT CHECK (
-        status IN ('pending', 'running', 'failed', 'completed')
+        status IN ('pending', 'queued', 'running', 'failed', 'completed')
     ),
     started_at TIMESTAMP,
     finished_at TIMESTAMP,

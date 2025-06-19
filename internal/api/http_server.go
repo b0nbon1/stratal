@@ -20,10 +20,10 @@ type HTTPServer struct {
 	Server        *http.Server
 	ctx           context.Context
 	cancel        context.CancelFunc
-	queue         *queue.RedisQueue
+	queue         queue.TaskQueue
 }
 
-func NewHTTPServer(addr string, store *db.SQLStore, queue *queue.RedisQueue) *HTTPServer {
+func NewHTTPServer(addr string, store *db.SQLStore, queue queue.TaskQueue) *HTTPServer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &HTTPServer{

@@ -26,11 +26,12 @@ func NewRedisQueue(addr, password string, db int, key string) *RedisQueue {
     }
 }
 
-func (rq *RedisQueue) Enqueue(job_run_id string) {
+func (rq *RedisQueue) Enqueue(job_run_id string) error {
     err := rq.client.RPush(rq.ctx, rq.key, job_run_id).Err()
     if err != nil {
-        panic(err)
+        return fmt.Errorf("unable to queue Job_run_id '%s' with error: %w", job_run_id, err)
     }
+    return nil
 }
 
 func (rq *RedisQueue) Dequeue() (string, error) {

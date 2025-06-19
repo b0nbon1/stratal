@@ -1,6 +1,6 @@
 -- name: CreateTaskRun :one
-INSERT INTO task_runs (id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO task_runs (job_run_id, task_id, status)
+VALUES ($1, $2, $3)
 RETURNING id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message, created_at;
 
 -- name: GetTaskRun :one

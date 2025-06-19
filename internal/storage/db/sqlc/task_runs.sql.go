@@ -12,21 +12,15 @@ import (
 )
 
 const createTaskRun = `-- name: CreateTaskRun :one
-INSERT INTO task_runs (id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO task_runs (job_run_id, task_id, status)
+VALUES ($1, $2, $3)
 RETURNING id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message, created_at
 `
 
 type CreateTaskRunParams struct {
-	ID           pgtype.UUID      `json:"id"`
-	JobRunID     pgtype.UUID      `json:"job_run_id"`
-	TaskID       pgtype.UUID      `json:"task_id"`
-	Status       pgtype.Text      `json:"status"`
-	StartedAt    pgtype.Timestamp `json:"started_at"`
-	FinishedAt   pgtype.Timestamp `json:"finished_at"`
-	ExitCode     pgtype.Int4      `json:"exit_code"`
-	Output       pgtype.Text      `json:"output"`
-	ErrorMessage pgtype.Text      `json:"error_message"`
+	JobRunID pgtype.UUID `json:"job_run_id"`
+	TaskID   pgtype.UUID `json:"task_id"`
+	Status   pgtype.Text `json:"status"`
 }
 
 type CreateTaskRunRow struct {
@@ -43,17 +37,7 @@ type CreateTaskRunRow struct {
 }
 
 func (q *Queries) CreateTaskRun(ctx context.Context, arg CreateTaskRunParams) (CreateTaskRunRow, error) {
-	row := q.db.QueryRow(ctx, createTaskRun,
-		arg.ID,
-		arg.JobRunID,
-		arg.TaskID,
-		arg.Status,
-		arg.StartedAt,
-		arg.FinishedAt,
-		arg.ExitCode,
-		arg.Output,
-		arg.ErrorMessage,
-	)
+	row := q.db.QueryRow(ctx, createTaskRun, arg.JobRunID, arg.TaskID, arg.Status)
 	var i CreateTaskRunRow
 	err := row.Scan(
 		&i.ID,

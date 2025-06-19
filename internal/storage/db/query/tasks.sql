@@ -15,6 +15,12 @@ SELECT id, job_id, name, type, config, "order", created_at
 FROM tasks
 WHERE id = $1 LIMIT 1;
 
+-- name: GetTasksByJobID :many
+SELECT id, job_id, name, type
+FROM tasks
+WHERE job_id = $1
+ORDER BY "order";
+
 -- name: ListTasks :many
 SELECT id, job_id, name, type, config, "order", created_at
 FROM tasks

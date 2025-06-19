@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-
     conn, err := psql.InitPostgres()
     if err != nil {
 		log.Fatal("cannot connect to db:", err)

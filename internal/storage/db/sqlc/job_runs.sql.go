@@ -12,20 +12,15 @@ import (
 )
 
 const createJobRun = `-- name: CreateJobRun :one
-INSERT INTO job_runs (id, job_id, status, started_at, finished_at, error_message, triggered_by, metadata)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO job_runs (job_id, status, triggered_by)
+VALUES ($1, $2, $3)
 RETURNING id, job_id, status, started_at, finished_at, error_message, triggered_by, metadata, created_at
 `
 
 type CreateJobRunParams struct {
-	ID           pgtype.UUID      `json:"id"`
-	JobID        pgtype.UUID      `json:"job_id"`
-	Status       pgtype.Text      `json:"status"`
-	StartedAt    pgtype.Timestamp `json:"started_at"`
-	FinishedAt   pgtype.Timestamp `json:"finished_at"`
-	ErrorMessage pgtype.Text      `json:"error_message"`
-	TriggeredBy  pgtype.Text      `json:"triggered_by"`
-	Metadata     []byte           `json:"metadata"`
+	JobID       pgtype.UUID `json:"job_id"`
+	Status      pgtype.Text `json:"status"`
+	TriggeredBy pgtype.Text `json:"triggered_by"`
 }
 
 type CreateJobRunRow struct {
@@ -41,16 +36,7 @@ type CreateJobRunRow struct {
 }
 
 func (q *Queries) CreateJobRun(ctx context.Context, arg CreateJobRunParams) (CreateJobRunRow, error) {
-	row := q.db.QueryRow(ctx, createJobRun,
-		arg.ID,
-		arg.JobID,
-		arg.Status,
-		arg.StartedAt,
-		arg.FinishedAt,
-		arg.ErrorMessage,
-		arg.TriggeredBy,
-		arg.Metadata,
-	)
+	row := q.db.QueryRow(ctx, createJobRun, arg.JobID, arg.Status, arg.TriggeredBy)
 	var i CreateJobRunRow
 	err := row.Scan(
 		&i.ID,

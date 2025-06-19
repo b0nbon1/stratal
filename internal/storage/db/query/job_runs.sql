@@ -1,6 +1,6 @@
 -- name: CreateJobRun :one
-INSERT INTO job_runs (id, job_id, status, started_at, finished_at, error_message, triggered_by, metadata)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO job_runs (job_id, status, triggered_by)
+VALUES ($1, $2, $3)
 RETURNING id, job_id, status, started_at, finished_at, error_message, triggered_by, metadata, created_at;
 
 -- name: GetJobRun :one

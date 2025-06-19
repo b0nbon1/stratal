@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -10,6 +11,7 @@ import (
 type Store interface {
 	Querier
 	CreateJobWithTasksTx(ctx context.Context, jobParams CreateJobParams, taskInputs []CreateTaskParams) (JobWithTaskResult, error)
+	CreateJobRunTx(ctx context.Context, jobID pgtype.UUID, triggeredBy string) (JobRunResult, error)
 }
 
 // SQLStore provides all functions to execute SQL queries and transactions

@@ -10,18 +10,18 @@ import (
 )
 
 type TaskJobBody struct {
-	Name   string        
-	Type   string         
-	Config dto.TaskConfig 
-	Order  int32          
+	Name   string   `json:"name"`     
+	Type   string       `json:"type"`  
+	Config dto.TaskConfig `json:"config"` 
+	Order  int32      `json:"order"`     
 }
 
 type JobBodyParams struct {
-	Name        string 
-	Description string
-	Source      string
-	RawPayload  []byte
-	Tasks       []TaskJobBody
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Source      string `json:"source"`
+	RawPayload  []byte `json:"raw_payload"`
+	Tasks       []TaskJobBody `json:"tasks"`
 }
 
 func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +59,9 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	// create a Job_run
+
 
 	respondJSON(w, 201, data)	
 }

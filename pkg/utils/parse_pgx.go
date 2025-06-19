@@ -20,3 +20,10 @@ func ParseUUID(id string) (pgtype.UUID, error) {
 
 	return pgUUID, nil
 }
+
+func ParseText(text string) pgtype.Text {
+	return pgtype.Text{
+		String: text,
+		Valid: true,
+	}
+}
