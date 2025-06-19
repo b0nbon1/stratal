@@ -7,11 +7,22 @@ import (
 	"syscall"
 
 	"github.com/b0nbon1/stratal/internal/api"
+	"github.com/b0nbon1/stratal/internal/queue"
+	postgres "github.com/b0nbon1/stratal/internal/storage/db"
+	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 )
 
 func main() {
 
-	hs := api.NewHTTPServer(":8080", nil)
+	pool := postgres.InitPgxPool()
+	defer pool.Close()
+
+	q := queue.NewRedisQueue("localhost:6379", "", 0, "job_runs")
+
+	// Now use pool with sqlc or raw queries
+	store := db.NewStore(pool)
+
+	hs := api.NewHTTPServer(":8080", store.(*db.SQLStore), q)
 
 	if err := hs.Start(); err != nil {
 		panic(err)

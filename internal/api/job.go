@@ -32,7 +32,7 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// create the job, which will be a blue_print
+	// create the job params, which will be a blue_print
 	jobParam := db.CreateJobParams{
 		Name: reqBodyJob.Name,
 		Description: pgtype.Text{String: reqBodyJob.Description, Valid: true},
@@ -40,6 +40,7 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		RawPayload: reqBodyJob.RawPayload,
 	}
 	
+	// create Tasks that will be linke to the Job
 	var taskParams []db.CreateTaskParams
 	for _, task := range reqBodyJob.Tasks {
 		taskParams = append(taskParams, db.CreateTaskParams{
@@ -50,7 +51,7 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	
+	// execute the transaction to create the jobs and also tasks, if fails rollback everthing
 	data, err := hs.store.CreateJobWithTasksTx(hs.ctx, jobParam, taskParams)
 	if err != nil {
 		respondJSON(w, 500, map[string]interface{}{
@@ -59,7 +60,6 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, 201, data)
-	return
+	respondJSON(w, 201, data)	
 }
 

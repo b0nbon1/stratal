@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/b0nbon1/stratal/internal/api/router"
+	"github.com/b0nbon1/stratal/internal/queue"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 )
 
@@ -19,16 +20,18 @@ type HTTPServer struct {
 	Server        *http.Server
 	ctx           context.Context
 	cancel        context.CancelFunc
+	queue         *queue.RedisQueue
 }
 
-func NewHTTPServer(addr string, store *db.SQLStore) *HTTPServer {
+func NewHTTPServer(addr string, store *db.SQLStore, queue *queue.RedisQueue) *HTTPServer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &HTTPServer{
-		addr:  addr,
-		store: store,
+		addr:   addr,
+		store:  store,
 		ctx:    ctx,
 		cancel: cancel,
+		queue:  queue,
 	}
 
 	return s
@@ -69,4 +72,3 @@ func (httpServer *HTTPServer) Stop() error {
 	httpServer.isInitialized = false
 	return nil
 }
-
