@@ -3,32 +3,31 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/b0nbon1/stratal/internal/queue"
+	"github.com/b0nbon1/stratal/internal/scheduler"
 	psql "github.com/b0nbon1/stratal/internal/storage/db"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 	"github.com/b0nbon1/stratal/internal/worker"
 )
 
 func main() {
-    conn, err := psql.InitPostgres()
-    if err != nil {
-		log.Fatal("cannot connect to db:", err)
-	}
-
     ctx := context.Background()
-    defer conn.Close(ctx)
+
     fmt.Println("Connected to database successfully")
 
-    store := db.New(conn)
+	pool := psql.InitPgxPool()
+	defer pool.Close()
+
+    store := db.NewStore(pool)
 	q := queue.NewRedisQueue("localhost:6379", "", 0, "job_runs")
 
+	scheduler.StartScheduler(q, store.(*db.SQLStore), ctx)
 
-    go worker.StartWorker(ctx, q, *store)
+    go worker.StartWorker(ctx, q, store.(*db.SQLStore))
     fmt.Println("Worker started successfully")
 
     quitChannel := make(chan os.Signal, 1)

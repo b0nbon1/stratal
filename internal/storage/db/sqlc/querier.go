@@ -29,6 +29,7 @@ type Querier interface {
 	JobRunsWithTasks(ctx context.Context, id pgtype.UUID) (JobRunsWithTasksRow, error)
 	ListJobRuns(ctx context.Context, jobID pgtype.UUID) ([]ListJobRunsRow, error)
 	ListJobs(ctx context.Context, arg ListJobsParams) ([]ListJobsRow, error)
+	ListPendingJobRuns(ctx context.Context) ([]ListPendingJobRunsRow, error)
 	ListTaskRuns(ctx context.Context, jobRunID pgtype.UUID) ([]ListTaskRunsRow, error)
 	ListTaskRunsByJob(ctx context.Context, id pgtype.UUID) ([]ListTaskRunsByJobRow, error)
 	ListTasks(ctx context.Context, jobID pgtype.UUID) ([]ListTasksRow, error)

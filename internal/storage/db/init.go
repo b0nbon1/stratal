@@ -10,7 +10,7 @@ import (
 )
 
 func InitPostgres() (conn *pgx.Conn, err error) {
-	conn, err = pgx.Connect(context.Background(), "postgresql://root:1234567890@localhost:5432/autom?sslmode=disable")
+	conn, err = pgx.Connect(context.Background(), "postgresql://root:1234567890@localhost:5432/stratal?sslmode=disable")
 	return
 }
 
@@ -18,7 +18,7 @@ func InitPgxPool() *pgxpool.Pool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	databaseUrl := "postgresql://root:1234567890@localhost:5432/autom?sslmode=disable"
+	databaseUrl := "postgresql://root:1234567890@localhost:5432/stratal?sslmode=disable"
 
 	config, err := pgxpool.ParseConfig(databaseUrl)
 	if err != nil {

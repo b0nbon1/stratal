@@ -41,5 +41,11 @@ LEFT JOIN task_runs tr ON jr.id = tr.job_run_id
 WHERE jr.id = $1
 GROUP BY jr.id;
 
-
+-- name: ListPendingJobRuns :many
+SELECT id, job_id, status, created_at, finished_at, started_at
+FROM job_runs
+WHERE status = 'pending'
+  AND (started_at IS NULL OR started_at < NOW() - INTERVAL '1 hour')
+  AND (finished_at IS NULL OR finished_at > NOW() - INTERVAL '1 hour')
+ORDER BY created_at DESC LIMIT 30;
 

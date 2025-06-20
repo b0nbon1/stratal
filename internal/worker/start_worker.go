@@ -9,7 +9,7 @@ import (
 	"github.com/b0nbon1/stratal/pkg/utils"
 )
 
-func StartWorker(ctx context.Context, q queue.TaskQueue, store db.Queries) {
+func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
 	fmt.Println("Starting worker...")
 	for {
 		fmt.Println("Worker started ==============")

@@ -186,6 +186,51 @@ func (q *Queries) ListJobRuns(ctx context.Context, jobID pgtype.UUID) ([]ListJob
 	return items, nil
 }
 
+const listPendingJobRuns = `-- name: ListPendingJobRuns :many
+SELECT id, job_id, status, created_at, finished_at, started_at
+FROM job_runs
+WHERE status = 'pending'
+  AND (started_at IS NULL OR started_at < NOW() - INTERVAL '1 hour')
+  AND (finished_at IS NULL OR finished_at > NOW() - INTERVAL '1 hour')
+ORDER BY created_at DESC LIMIT 30
+`
+
+type ListPendingJobRunsRow struct {
+	ID         pgtype.UUID        `json:"id"`
+	JobID      pgtype.UUID        `json:"job_id"`
+	Status     pgtype.Text        `json:"status"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	FinishedAt pgtype.Timestamp   `json:"finished_at"`
+	StartedAt  pgtype.Timestamp   `json:"started_at"`
+}
+
+func (q *Queries) ListPendingJobRuns(ctx context.Context) ([]ListPendingJobRunsRow, error) {
+	rows, err := q.db.Query(ctx, listPendingJobRuns)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPendingJobRunsRow{}
+	for rows.Next() {
+		var i ListPendingJobRunsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.JobID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.FinishedAt,
+			&i.StartedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateJobRun = `-- name: UpdateJobRun :exec
 UPDATE job_runs
 SET status = $2, started_at = $3, finished_at = $4, error_message = $5, triggered_by = $6, metadata = $7, updated_at = CURRENT_TIMESTAMP
