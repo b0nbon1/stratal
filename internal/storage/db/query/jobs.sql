@@ -20,6 +20,7 @@ LEFT JOIN tasks t ON j.id = t.job_id
 WHERE j.id = $1
 GROUP BY j.id;
 
+
 -- name: ListJobs :many
 SELECT id, user_id, name, description, source, created_at
 FROM jobs
