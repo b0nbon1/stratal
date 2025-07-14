@@ -17,28 +17,28 @@ const stats = [
     title: "Running Tasks",
     value: "12",
     icon: <AccessTimeIcon fontSize="small" sx={{ color: "#2563eb" }} />,
-    bgColor: "#eff6ff", // Tailwind bg-blue-50
+    bgColor: "#eff6ff",
     change: "+2 from yesterday",
   },
   {
     title: "Completed",
     value: "234",
     icon: <CheckCircleIcon fontSize="small" sx={{ color: "#16a34a" }} />,
-    bgColor: "#f0fdf4", // Tailwind bg-green-50
+    bgColor: "#f0fdf4",
     change: "+15 from yesterday",
   },
   {
     title: "Failed",
     value: "8",
     icon: <CancelIcon fontSize="small" sx={{ color: "#dc2626" }} />,
-    bgColor: "#fef2f2", // Tailwind bg-red-50
+    bgColor: "#fef2f2",
     change: "-3 from yesterday",
   },
   {
     title: "Scheduled",
     value: "45",
     icon: <EventNoteIcon fontSize="small" sx={{ color: "#7e22ce" }} />,
-    bgColor: "#faf5ff", // Tailwind bg-purple-50
+    bgColor: "#faf5ff",
     change: "+5 from yesterday",
   },
 ];

@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/b0nbon1/stratal/internal/api/middleware"
@@ -12,17 +11,39 @@ import (
 func (hs *HTTPServer) registerRoutes() *router.Router {
 	r := router.NewRouter()
 
-	api := r.Group("/api", middleware.Logging())
-
-	api.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("We're here almost done, guess healthcheck is okay")
+	// Health check endpoint
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 200, map[string]interface{}{
-			"message": "OK",
+			"status":  "healthy",
+			"service": "stratal",
 		})
 	})
 
-	v1 := r.Group("/v1")
+	// API routes with logging middleware
+	api := r.Group("/api", middleware.Logging())
+
+	// API health check
+	api.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		respondJSON(w, 200, map[string]interface{}{
+			"message": "API is running",
+		})
+	})
+
+	// V1 API routes
+	v1 := api.Group("/v1")
+
+	// Job routes
 	v1.Post("/jobs", hs.CreateJob)
+	v1.Get("/jobs/:id", hs.GetJob)
+	v1.Get("/jobs", hs.ListJobs)
+
+	// Job run routes
+	v1.Post("/job-runs", hs.CreateJobRun)
+	v1.Get("/job-runs/:id", hs.GetJobRun)
+	v1.Get("/jobs/:id/runs", hs.ListJobRuns)
+
+	// Task run routes
+	v1.Get("/job-runs/:id/tasks", hs.ListTaskRunsForJobRun)
 
 	return r
 }
@@ -39,3 +60,14 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
+func respondError(w http.ResponseWriter, status int, message string, details ...interface{}) {
+	response := map[string]interface{}{
+		"error": message,
+	}
+
+	if len(details) > 0 {
+		response["details"] = details[0]
+	}
+
+	respondJSON(w, status, response)
+}

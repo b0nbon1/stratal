@@ -18,8 +18,8 @@ func (store *SQLStore) CreateJobRunTx(ctx context.Context, jobID pgtype.UUID, tr
 	err := store.execTx(ctx, func(q *Queries) error {
 		jobRun, err := q.CreateJobRun(ctx, CreateJobRunParams{
 			JobID:       jobID,
-			TriggeredBy: pgtype.Text{String: triggeredBy},
-			Status:      pgtype.Text{String: "pending"},
+			TriggeredBy: pgtype.Text{String: triggeredBy, Valid: true},
+			Status:      pgtype.Text{String: "pending", Valid: true},
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create job_run %w", err)
@@ -37,7 +37,7 @@ func (store *SQLStore) CreateJobRunTx(ctx context.Context, jobID pgtype.UUID, tr
 			taskRun, err := q.CreateTaskRun(ctx, CreateTaskRunParams{
 				JobRunID: jobRun.ID,
 				TaskID:   task.ID,
-				Status:   pgtype.Text{String: "pending"},
+				Status:   pgtype.Text{String: "pending", Valid: true},
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create task run: %w", err)
@@ -45,7 +45,7 @@ func (store *SQLStore) CreateJobRunTx(ctx context.Context, jobID pgtype.UUID, tr
 			taskRunIDs = append(taskRunIDs, taskRun.ID.String())
 		}
 
-		result.JobRunId = jobID.String()
+		result.JobRunId = jobRun.ID.String() // Fixed: use jobRun.ID instead of jobID
 		result.TaskRunIds = taskRunIDs
 		return nil
 	})

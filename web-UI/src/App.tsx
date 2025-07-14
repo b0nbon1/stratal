@@ -8,6 +8,7 @@ function App() {
       <AppSidebar />
       <Box sx={{ pl: {xs: 4, sm: 5,  md: 32 }, mt: 4, pr: 4 }}>
         <StatsCards />
+        
       </Box>
     </>
   );
