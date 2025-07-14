@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	"github.com/b0nbon1/stratal/internal/api/middleware"
-	"github.com/b0nbon1/stratal/internal/api/router"
+	"github.com/b0nbon1/stratal/pkg/router"
 )
 
 func (hs *HTTPServer) registerRoutes() *router.Router {
+	
 	r := router.NewRouter()
 
 	// Health check endpoint

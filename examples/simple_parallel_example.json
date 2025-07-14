@@ -1,0 +1,65 @@
+{
+  "name": "Simple Parallel Task Example",
+  "description": "Basic example of parallel execution with output passing",
+  "source": "api",
+  "run_immediately": true,
+  "tasks": [
+    {
+      "name": "generate_random_1",
+      "type": "custom",
+      "order": 1,
+      "config": {
+        "script": {
+          "language": "bash",
+          "code": "echo $((RANDOM % 100))"
+        }
+      }
+    },
+    {
+      "name": "generate_random_2",
+      "type": "custom",
+      "order": 1,
+      "config": {
+        "script": {
+          "language": "bash",
+          "code": "echo $((RANDOM % 100))"
+        }
+      }
+    },
+    {
+      "name": "generate_random_3",
+      "type": "custom",
+      "order": 1,
+      "config": {
+        "script": {
+          "language": "bash",
+          "code": "echo $((RANDOM % 100))"
+        }
+      }
+    },
+    {
+      "name": "calculate_sum",
+      "type": "custom",
+      "order": 2,
+      "config": {
+        "depends_on": ["generate_random_1", "generate_random_2", "generate_random_3"],
+        "script": {
+          "language": "python",
+          "code": "import os\n\n# Get outputs from previous tasks\nnum1 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_1', '0').strip())\nnum2 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_2', '0').strip())\nnum3 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_3', '0').strip())\n\nsum_result = num1 + num2 + num3\n\nprint(f'Numbers: {num1}, {num2}, {num3}')\nprint(f'Sum: {sum_result}')\nprint(sum_result)  # Last line is captured as output"
+        }
+      }
+    },
+    {
+      "name": "check_result",
+      "type": "custom",
+      "order": 3,
+      "config": {
+        "depends_on": ["calculate_sum"],
+        "script": {
+          "language": "bash",
+          "code": "#!/bin/bash\n\n# Access the sum from previous task\nSUM=${TASK_OUTPUT_CALCULATE_SUM##*$'\\n'}  # Get last line\n\necho \"The sum of three random numbers is: $SUM\"\n\nif [ \"$SUM\" -gt 150 ]; then\n    echo \"Result is greater than 150!\"\nelse\n    echo \"Result is less than or equal to 150\"\nfi"
+        }
+      }
+    }
+  ]
+} 

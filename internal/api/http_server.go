@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/b0nbon1/stratal/internal/api/router"
 	"github.com/b0nbon1/stratal/internal/queue"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
+	"github.com/b0nbon1/stratal/pkg/router"
 )
 
 type HTTPServer struct {

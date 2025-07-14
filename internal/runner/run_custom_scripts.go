@@ -31,7 +31,8 @@ var languageConfig = map[string]struct {
 	"perl":       {"perl", ".pl", []string{}},
 }
 
-func RunCustomScript(ctx context.Context, script *dto.ScriptConfig) (string, error) {
+// RunCustomScriptWithOutputs runs a custom script with environment variables containing outputs from previous tasks
+func RunCustomScriptWithOutputs(ctx context.Context, script *dto.ScriptConfig, outputs map[string]string) (string, error) {
 	if script == nil {
 		return "", fmt.Errorf("script configuration is nil")
 	}
@@ -69,8 +70,14 @@ func RunCustomScript(ctx context.Context, script *dto.ScriptConfig) (string, err
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	// Set up environment variables (you can extend this)
+	// Set up environment variables with task outputs
 	cmd.Env = os.Environ()
+
+	// Add TASK_OUTPUT_ prefix to all outputs
+	for taskName, output := range outputs {
+		envName := fmt.Sprintf("TASK_OUTPUT_%s", strings.ToUpper(strings.ReplaceAll(taskName, "-", "_")))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", envName, output))
+	}
 
 	// Create a channel to signal completion
 	done := make(chan error, 1)
@@ -108,6 +115,11 @@ func RunCustomScript(ctx context.Context, script *dto.ScriptConfig) (string, err
 
 		return output, nil
 	}
+}
+
+func RunCustomScript(ctx context.Context, script *dto.ScriptConfig) (string, error) {
+	// Call the new function with empty outputs for backward compatibility
+	return RunCustomScriptWithOutputs(ctx, script, nil)
 }
 
 // ValidateScript checks if a script is valid without executing it
