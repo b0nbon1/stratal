@@ -9,7 +9,7 @@ import (
 )
 
 func (hs *HTTPServer) registerRoutes() *router.Router {
-	
+
 	r := router.NewRouter()
 
 	// Health check endpoint
@@ -35,16 +35,13 @@ func (hs *HTTPServer) registerRoutes() *router.Router {
 
 	// Job routes
 	v1.Post("/jobs", hs.CreateJob)
-	v1.Get("/jobs/:id", hs.GetJob)
 	v1.Get("/jobs", hs.ListJobs)
+	v1.Get("/jobs/:id", hs.GetJob)
 
 	// Job run routes
 	v1.Post("/job-runs", hs.CreateJobRun)
+	v1.Get("/job-runs", hs.GetJobRun)
 	v1.Get("/job-runs/:id", hs.GetJobRun)
-	v1.Get("/jobs/:id/runs", hs.ListJobRuns)
-
-	// Task run routes
-	v1.Get("/job-runs/:id/tasks", hs.ListTaskRunsForJobRun)
 
 	return r
 }

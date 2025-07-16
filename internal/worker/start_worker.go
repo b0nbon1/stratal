@@ -20,7 +20,9 @@ func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
 			fmt.Println("Worker context cancelled, shutting down...")
 			return
 		default:
+			fmt.Println("Processing next job...")
 			processNextJob(ctx, q, store)
+			fmt.Println("Job processed")
 		}
 	}
 }
@@ -28,7 +30,6 @@ func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
 func processNextJob(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
 	fmt.Println("Worker polling for jobs...")
 
-	// Dequeue with timeout
 	jobRunId, err := q.Dequeue()
 	if err != nil {
 		fmt.Printf("Error dequeuing job_run: %v\n", err)
@@ -37,6 +38,8 @@ func processNextJob(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) 
 	}
 
 	if jobRunId == "" {
+		fmt.Println("No job_run to process")
+		time.Sleep(2 * time.Second) // Back off on error
 		return
 	}
 

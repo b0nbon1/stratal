@@ -1,119 +1,108 @@
-# Stratal Job Examples
+# Stratal Examples
 
-This directory contains examples demonstrating various features of the Stratal job automation system.
+This directory contains example job configurations that demonstrate various features of the Stratal task runner.
 
-## Parallel Task Execution & Output Passing
+## Available Examples
 
-Stratal now supports:
-1. **Parallel execution** of tasks that don't have dependencies
-2. **Output passing** between dependent tasks
-3. **Flexible dependency references** using either task names or IDs
+### simple_parallel_example.json
+Basic example of parallel execution with output passing between tasks.
 
-### Key Features
+### placeholder_to_email_example.json
+**NEW**: Demonstrates fetching placeholder text from lorem ipsum API and sending it via email.
 
-#### 1. Parallel Execution
-Tasks at the same dependency level execute concurrently:
-- Tasks with no dependencies run in parallel
-- Tasks depending only on level-0 tasks run in parallel after level-0 completes
-- Maximum 5 concurrent tasks by default (configurable)
+### placeholder_variations_example.json  
+**NEW**: Shows different placeholder text options (short, medium, long) combined into a single email.
 
-#### 2. Output Passing
+## New Builtin Tasks
 
-**For Builtin Tasks:**
-Use `${task_name.output}` syntax in parameters:
+### placeholder_text
+Fetches lorem ipsum placeholder text from loripsum.net API.
+
+**Parameters:**
+- `paragraphs` (optional): Number of paragraphs to generate (default: 3)
+- `sentences` (optional): Number of sentences per paragraph (default: 5)  
+- `words` (optional): Generate specific number of words instead of paragraphs/sentences
+
+**Examples:**
 ```json
 {
-  "parameters": {
-    "subject": "Result: ${previous_task.output}",
-    "body": "The calculation returned: ${calculate_task.output}"
+  "name": "fetch_text",
+  "type": "builtin", 
+  "config": {
+    "parameters": {
+      "paragraphs": "2",
+      "sentences": "4"
+    }
   }
 }
 ```
 
-**For Custom Scripts:**
-Access outputs via environment variables with `TASK_OUTPUT_` prefix:
-```python
-# Python example
-import os
-previous_output = os.environ.get('TASK_OUTPUT_PREVIOUS_TASK', '')
-```
-
-```javascript
-// JavaScript example
-const previousOutput = process.env.TASK_OUTPUT_PREVIOUS_TASK || '';
-```
-
-```bash
-# Bash example
-echo "Previous result: $TASK_OUTPUT_PREVIOUS_TASK"
-```
-
-#### 3. Dependency Declaration
-Use task names (recommended) or task IDs:
 ```json
 {
-  "depends_on": ["fetch_data", "validate_input"]
+  "name": "fetch_words",
+  "type": "builtin",
+  "config": {
+    "parameters": {
+      "words": "100"
+    }
+  }
 }
 ```
 
-### Examples
+### send_email (Updated)
+Sends emails via SMTP with improved context handling and output formatting.
 
-1. **simple_parallel_example.json** - Basic demonstration:
-   - 3 tasks generate random numbers in parallel
-   - 1 task sums the results
-   - Final task checks if sum > 150
+**Required Parameters:**
+- `smtp_host`: SMTP server hostname
+- `smtp_port`: SMTP server port  
+- `smtp_user`: SMTP username
+- `smtp_password`: SMTP password or app password
+- `from`: Sender email address
+- `to`: Recipient email address(es), comma-separated
+- `subject`: Email subject line
 
-2. **parallel_tasks_example.json** - Complex pipeline:
-   - 3 API calls execute in parallel (user, posts, weather)
-   - Data processing task depends on user data
-   - Aggregation task waits for all 3 API calls
-   - Email notification uses aggregated results
+**Body Parameters (at least one required):**
+- `body_html`: HTML email body
+- `body_text`: Plain text email body
 
-### Running Examples
-
-```bash
-# Using curl
-curl -X POST http://localhost:8080/api/v1/jobs \
-  -H "Content-Type: application/json" \
-  -d @examples/simple_parallel_example.json
-
-# Check job status
-curl http://localhost:8080/api/v1/jobs/{job_id}
-
-# View job runs
-curl http://localhost:8080/api/v1/jobs/{job_id}/runs
-
-# View task runs for a specific job run
-curl http://localhost:8080/api/v1/job-runs/{job_run_id}/tasks
+**Example:**
+```json
+{
+  "name": "send_notification",
+  "type": "builtin",
+  "config": {
+    "depends_on": ["fetch_placeholder_text"],
+    "parameters": {
+      "smtp_host": "smtp.gmail.com",
+      "smtp_port": "587", 
+      "smtp_user": "user@gmail.com",
+      "smtp_password": "app-password",
+      "from": "user@gmail.com",
+      "to": "recipient@example.com",
+      "subject": "Generated Content",
+      "body_text": "${TASK_OUTPUT_FETCH_PLACEHOLDER_TEXT}",
+      "body_html": "<h1>Content</h1><p>${TASK_OUTPUT_FETCH_PLACEHOLDER_TEXT}</p>"
+    }
+  }
+}
 ```
 
-### Performance Benefits
+## Task Output Variables
 
-Parallel execution significantly reduces total execution time:
-- **Sequential**: Task1 (2s) → Task2 (2s) → Task3 (2s) = 6s total
-- **Parallel**: Task1, Task2, Task3 (2s) = 2s total
+Task outputs can be referenced in subsequent tasks using the format:
+`${TASK_OUTPUT_TASK_NAME_IN_UPPERCASE}`
 
-### Best Practices
+For example, if a task is named `fetch_placeholder_text`, its output can be accessed as:
+`${TASK_OUTPUT_FETCH_PLACEHOLDER_TEXT}`
 
-1. **Group independent tasks** at the same order level
-2. **Use meaningful task names** for easier dependency references
-3. **Handle missing outputs gracefully** in custom scripts
-4. **Keep task outputs concise** - they're stored in memory during execution
-5. **Use structured output** (JSON) for complex data passing between tasks
+## Usage Tips
 
-### Task Execution Flow
+1. **Gmail SMTP**: Use app passwords instead of your regular password for Gmail SMTP
+2. **HTML Formatting**: Use HTML in `body_html` for rich email formatting
+3. **Dependencies**: Use `depends_on` to ensure tasks run in the correct order
+4. **Parallel Execution**: Tasks with the same `order` value run in parallel
+5. **Error Handling**: Both email and placeholder tasks include proper error handling and context cancellation support
 
-```
-Level 0: [Task A] [Task B] [Task C]  <- Execute in parallel
-           ↓         ↓         ↓
-Level 1: [Task D]  [Task E]          <- Execute in parallel after level 0
-           ↓         ↓
-Level 2: [Task F]                    <- Executes after level 1
-```
+## Running Examples
 
-### Limitations
-
-- Maximum 5 concurrent tasks (configurable in processor)
-- Output size should be reasonable (stored in memory)
-- Circular dependencies are detected and rejected
-- Task outputs are only available within the same job run 
+To test these examples, update the email credentials in the JSON files and use the Stratal API or CLI to submit the job configurations. 

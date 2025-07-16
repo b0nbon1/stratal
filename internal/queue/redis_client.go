@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -35,7 +36,7 @@ func (rq *RedisQueue) Enqueue(job_run_id string) error {
 }
 
 func (rq *RedisQueue) Dequeue() (string, error) {
-    result, err := rq.client.BLPop(rq.ctx, 0, rq.key).Result()
+    result, err := rq.client.BLPop(rq.ctx, 1*time.Second, rq.key).Result()
     if err != nil {
         return "", err
     }

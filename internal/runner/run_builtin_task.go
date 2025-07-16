@@ -13,8 +13,8 @@ type TaskFunc func(ctx context.Context, params map[string]string) (string, error
 
 // taskRegistry holds all registered builtin tasks
 var taskRegistry = map[string]TaskFunc{
-	"send_email":   wrapLegacyTask(tasks.SendEmailTask),
-	"http_request": tasks.HTTPRequestTask,
+	"send_email":       tasks.SendEmailTaskV2,
+	"http_request":     tasks.HTTPRequestTask,
 	// Add more builtin tasks here as they are implemented
 	// "database_query": tasks.DatabaseQueryTask,
 	// "file_operation": tasks.FileOperationTask,

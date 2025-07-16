@@ -1,7 +1,34 @@
+// Package router provides a flexible HTTP router with support for parameterized routes,
+// middleware chaining, and route grouping. It handles route conflicts intelligently by
+// prioritizing static routes over parameterized ones.
+//
+// Example usage:
+//
+//	r := router.NewRouter()
+//
+//	// Static routes have higher priority
+//	r.Get("/jobs", listJobsHandler)
+//
+//	// Parameterized routes have lower priority and can extract parameters
+//	r.Get("/jobs/:id", getJobHandler)
+//	r.Put("/jobs/:id", updateJobHandler)
+//	r.Delete("/jobs/:id", deleteJobHandler)
+//
+//	// In your handler, extract the parameter:
+//	func getJobHandler(w http.ResponseWriter, r *http.Request) {
+//		id := router.GetParam(r, "id")
+//		// use the id...
+//	}
+//
+//	// Route groups work with parameterized routes too:
+//	api := r.Group("/api/v1")
+//	api.Get("/users/:userId/jobs/:jobId", getUserJobHandler)
 package router
 
 import (
+	"context"
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -11,28 +38,67 @@ type RouteHandler func(http.ResponseWriter, *http.Request)
 // Middleware defines a standard middleware signature
 type Middleware func(http.Handler) http.Handler
 
+// Route represents a registered route with its pattern and metadata
+type Route struct {
+	Method     string
+	Pattern    string
+	Handler    http.Handler
+	ParamNames []string
+	IsParam    []bool
+	Priority   int // Lower number = higher priority
+}
+
+// RouteParams holds extracted path parameters
+type RouteParams map[string]string
+
+// Context key for route parameters
+type contextKey string
+
+const ParamsKey contextKey = "route_params"
+
 type Router struct {
-	mux         *http.ServeMux
+	routes      *[]Route // Use pointer to share routes between grouped routers
 	middlewares []Middleware
 	prefix      string
 }
 
 // NewRouter returns a new top-level Router
 func NewRouter() *Router {
+	routes := make([]Route, 0)
 	return &Router{
-		mux: http.NewServeMux(),
+		routes: &routes, // Store pointer to routes slice
 	}
 }
 
 // ServeHTTP makes Router satisfy http.Handler
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.mux.ServeHTTP(w, req)
+	// Try to find a matching route
+	if route, params := r.findMatchingRoute(req.Method, req.URL.Path); route != nil {
+		// Add parameters to request context if any
+		if len(params) > 0 {
+			ctx := context.WithValue(req.Context(), ParamsKey, params)
+			req = req.WithContext(ctx)
+		}
+		route.Handler.ServeHTTP(w, req)
+		return
+	}
+
+	// No route found, return 404
+	http.NotFound(w, req)
+}
+
+// GetParam extracts a path parameter from the request context
+func GetParam(r *http.Request, key string) string {
+	if params, ok := r.Context().Value(ParamsKey).(RouteParams); ok {
+		return params[key]
+	}
+	return ""
 }
 
 // Group creates a subgroup with path prefix and optional middleware
 func (r *Router) Group(prefix string, mws ...Middleware) *Router {
 	return &Router{
-		mux:         r.mux,
+		routes:      r.routes, // Share pointer to routes slice for parameterized routes
 		prefix:      r.prefix + strings.TrimSuffix(prefix, "/"),
 		middlewares: append(r.middlewares, mws...),
 	}
@@ -93,15 +159,84 @@ func (r *Router) handle(method, path string, args ...interface{}) {
 
 	finalHandler := chainMiddlewares(handler, append(r.middlewares, middlewares...)...)
 
-	r.mux.Handle(finalPath, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != method {
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		finalHandler.ServeHTTP(w, req)
-	}))
+	// Register all routes in our custom system for proper priority handling
+	r.registerRoute(method, finalPath, finalHandler)
 }
 
+// registerRoute registers any route (static or parameterized) in our route system
+func (r *Router) registerRoute(method, pattern string, handler http.Handler) {
+	segments := strings.Split(strings.Trim(pattern, "/"), "/")
+	paramNames := make([]string, len(segments))
+	isParam := make([]bool, len(segments))
+	priority := 0
+
+	for i, segment := range segments {
+		if strings.HasPrefix(segment, ":") {
+			paramNames[i] = segment[1:] // Remove the ':' prefix
+			isParam[i] = true
+			priority += 10 // Parameterized segments have lower priority
+		} else {
+			isParam[i] = false
+			priority += 1 // Static segments have higher priority
+		}
+	}
+
+	route := Route{
+		Method:     method,
+		Pattern:    pattern,
+		Handler:    handler,
+		ParamNames: paramNames,
+		IsParam:    isParam,
+		Priority:   priority,
+	}
+
+	*r.routes = append(*r.routes, route)
+
+	// Sort routes by priority (lower number = higher priority)
+	sort.Slice(*r.routes, func(i, j int) bool {
+		return (*r.routes)[i].Priority < (*r.routes)[j].Priority
+	})
+}
+
+// findMatchingRoute finds the best matching route for the given method and path
+func (r *Router) findMatchingRoute(method, path string) (*Route, RouteParams) {
+	pathSegments := strings.Split(strings.Trim(path, "/"), "/")
+
+	for _, route := range *r.routes {
+		if route.Method != method {
+			continue
+		}
+
+		routeSegments := strings.Split(strings.Trim(route.Pattern, "/"), "/")
+
+		// Check if segment count matches
+		if len(pathSegments) != len(routeSegments) {
+			continue
+		}
+
+		params := make(RouteParams)
+		matches := true
+
+		for i, routeSegment := range routeSegments {
+			if route.IsParam[i] {
+				// This is a parameter segment, extract the value
+				params[route.ParamNames[i]] = pathSegments[i]
+			} else {
+				// This is a static segment, must match exactly
+				if routeSegment != pathSegments[i] {
+					matches = false
+					break
+				}
+			}
+		}
+
+		if matches {
+			return &route, params
+		}
+	}
+
+	return nil, nil
+}
 
 // utility
 func chainMiddlewares(h http.Handler, mws ...Middleware) http.Handler {

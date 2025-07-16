@@ -3,22 +3,21 @@ package api
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
+	"github.com/b0nbon1/stratal/pkg/router"
 	"github.com/b0nbon1/stratal/pkg/utils"
 )
 
-// GetJob retrieves a specific job by ID
+// GetJob retrieves a specific job by ID from URL path parameter
 func (hs *HTTPServer) GetJob(w http.ResponseWriter, r *http.Request) {
-	// Extract job ID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, 400, "Invalid job ID")
+	// Extract job ID from URL path parameter (e.g., /jobs/:id)
+	jobID := router.GetParam(r, "id")
+	if jobID == "" {
+		respondError(w, 400, "Job ID is required in URL path")
 		return
 	}
 
-	jobID := pathParts[len(pathParts)-1]
 	jobUUID, err := utils.ParseUUID(jobID)
 	if err != nil {
 		respondError(w, 400, "Invalid job UUID", err.Error())
@@ -27,7 +26,7 @@ func (hs *HTTPServer) GetJob(w http.ResponseWriter, r *http.Request) {
 
 	job, err := hs.store.GetJobWithTasks(hs.ctx, jobUUID)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows") {
+		if utils.ContainsSubstring(err.Error(), "no rows") {
 			respondError(w, 404, "Job not found")
 		} else {
 			respondError(w, 500, "Failed to fetch job", err.Error())
@@ -38,9 +37,15 @@ func (hs *HTTPServer) GetJob(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, 200, job)
 }
 
-// ListJobs retrieves a list of jobs with pagination
+// ListJobs retrieves a list of jobs with pagination or a specific job by ID
 func (hs *HTTPServer) ListJobs(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters
+	// Check if this is a request for a specific job
+	if jobID := r.URL.Query().Get("id"); jobID != "" {
+		hs.GetJob(w, r)
+		return
+	}
+
+	// Parse pagination parameters
 	limit := 20
 	offset := 0
 
@@ -73,16 +78,14 @@ func (hs *HTTPServer) ListJobs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetJobRun retrieves a specific job run by ID
+// GetJobRun retrieves a specific job run by ID from query parameter
 func (hs *HTTPServer) GetJobRun(w http.ResponseWriter, r *http.Request) {
-	// Extract job run ID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, 400, "Invalid job run ID")
+	jobRunID := r.URL.Query().Get("id")
+	if jobRunID == "" {
+		respondError(w, 400, "Job run ID is required as query parameter")
 		return
 	}
 
-	jobRunID := pathParts[len(pathParts)-1]
 	jobRunUUID, err := utils.ParseUUID(jobRunID)
 	if err != nil {
 		respondError(w, 400, "Invalid job run UUID", err.Error())
@@ -91,7 +94,7 @@ func (hs *HTTPServer) GetJobRun(w http.ResponseWriter, r *http.Request) {
 
 	jobRun, err := hs.store.JobRunsWithTasks(hs.ctx, jobRunUUID)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows") {
+		if utils.ContainsSubstring(err.Error(), "no rows") {
 			respondError(w, 404, "Job run not found")
 		} else {
 			respondError(w, 500, "Failed to fetch job run", err.Error())
@@ -102,64 +105,3 @@ func (hs *HTTPServer) GetJobRun(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, 200, jobRun)
 }
 
-// ListJobRuns retrieves all runs for a specific job
-func (hs *HTTPServer) ListJobRuns(w http.ResponseWriter, r *http.Request) {
-	// Extract job ID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 6 {
-		respondError(w, 400, "Invalid job ID")
-		return
-	}
-
-	jobID := pathParts[len(pathParts)-2]
-	jobUUID, err := utils.ParseUUID(jobID)
-	if err != nil {
-		respondError(w, 400, "Invalid job UUID", err.Error())
-		return
-	}
-
-	jobRuns, err := hs.store.ListJobRuns(hs.ctx, jobUUID)
-	if err != nil {
-		respondError(w, 500, "Failed to list job runs", err.Error())
-		return
-	}
-
-	respondJSON(w, 200, map[string]interface{}{
-		"job_id":   jobID,
-		"job_runs": jobRuns,
-		"count":    len(jobRuns),
-	})
-}
-
-// ListTaskRunsForJobRun retrieves all task runs for a specific job run
-func (hs *HTTPServer) ListTaskRunsForJobRun(w http.ResponseWriter, r *http.Request) {
-	// Extract job run ID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 6 {
-		respondError(w, 400, "Invalid job run ID")
-		return
-	}
-
-	jobRunID := pathParts[len(pathParts)-2]
-	jobRunUUID, err := utils.ParseUUID(jobRunID)
-	if err != nil {
-		respondError(w, 400, "Invalid job run UUID", err.Error())
-		return
-	}
-
-	taskRuns, err := hs.store.ListTaskRuns(hs.ctx, jobRunUUID)
-	if err != nil {
-		respondError(w, 500, "Failed to list task runs", err.Error())
-		return
-	}
-
-	// Get the job run details too
-	jobRun, _ := hs.store.GetJobRun(hs.ctx, jobRunUUID)
-
-	respondJSON(w, 200, map[string]interface{}{
-		"job_run_id": jobRunID,
-		"job_run":    jobRun,
-		"task_runs":  taskRuns,
-		"count":      len(taskRuns),
-	})
-}

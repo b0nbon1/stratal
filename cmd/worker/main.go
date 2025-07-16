@@ -25,7 +25,7 @@ func main() {
     store := db.NewStore(pool)
 	q := queue.NewRedisQueue("localhost:6379", "", 0, "job_runs")
 
-	scheduler.StartScheduler(q, store.(*db.SQLStore), ctx)
+	go scheduler.StartScheduler(q, store.(*db.SQLStore), ctx)
 
     go worker.StartWorker(ctx, q, store.(*db.SQLStore))
     fmt.Println("Worker started successfully")

@@ -1,16 +1,18 @@
 package tasks
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/smtp"
 	"strings"
 )
 
-func SendEmailTask(params map[string]string) error {
+// SendEmailTaskV2 is the new context-aware version of the email task
+func SendEmailTaskV2(ctx context.Context, params map[string]string) (string, error) {
 	required := []string{
 		"smtp_host", "smtp_port", "smtp_user", "smtp_password",
-		"from", "to", "subject", "body_html",
+		"from", "to", "subject",
 	}
 	missing := []string{}
 	for _, key := range required {
@@ -20,7 +22,15 @@ func SendEmailTask(params map[string]string) error {
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required parameters: %s", strings.Join(missing, ", "))
+		return "", fmt.Errorf("missing required parameters: %s", strings.Join(missing, ", "))
+	}
+
+	// Check if we have either body_html or body_text
+	bodyHTML := params["body_html"]
+	bodyText := params["body_text"]
+
+	if bodyHTML == "" && bodyText == "" {
+		return "", fmt.Errorf("at least one of body_html or body_text must be provided")
 	}
 
 	smtpHost := params["smtp_host"]
@@ -30,8 +40,13 @@ func SendEmailTask(params map[string]string) error {
 	from := params["from"]
 	to := strings.Split(params["to"], ",")
 	subject := params["subject"]
-	bodyHTML := params["body_html"]
-	bodyText := params["body_text"]
+
+	// Check context cancellation before proceeding
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
 
 	message := buildMimeEmail(from, to, subject, bodyHTML, bodyText)
 
@@ -45,45 +60,61 @@ func SendEmailTask(params map[string]string) error {
 
 	conn, err := tls.Dial("tcp", addr, tlsconfig)
 	if err != nil {
-		return fmt.Errorf("tls dial failed: %w", err)
+		return "", fmt.Errorf("tls dial failed: %w", err)
 	}
 
 	client, err := smtp.NewClient(conn, smtpHost)
 	if err != nil {
-		return fmt.Errorf("smtp client failed: %w", err)
+		return "", fmt.Errorf("smtp client failed: %w", err)
 	}
 	defer client.Quit()
 
+	// Check context cancellation before auth
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
+
 	if err = client.Auth(auth); err != nil {
-		return fmt.Errorf("smtp auth failed: %w", err)
+		return "", fmt.Errorf("smtp auth failed: %w", err)
 	}
 
 	if err = client.Mail(from); err != nil {
-		return fmt.Errorf("smtp MAIL FROM failed: %w", err)
+		return "", fmt.Errorf("smtp MAIL FROM failed: %w", err)
 	}
 
 	for _, recipient := range to {
+		recipient = strings.TrimSpace(recipient)
 		if err = client.Rcpt(recipient); err != nil {
-			return fmt.Errorf("smtp RCPT TO failed for %s: %w", recipient, err)
+			return "", fmt.Errorf("smtp RCPT TO failed for %s: %w", recipient, err)
 		}
 	}
 
 	w, err := client.Data()
 	if err != nil {
-		return fmt.Errorf("smtp DATA failed: %w", err)
+		return "", fmt.Errorf("smtp DATA failed: %w", err)
 	}
 
 	_, err = w.Write([]byte(message))
 	if err != nil {
-		return fmt.Errorf("smtp write failed: %w", err)
+		return "", fmt.Errorf("smtp write failed: %w", err)
 	}
 
 	err = w.Close()
 	if err != nil {
-		return fmt.Errorf("smtp close failed: %w", err)
+		return "", fmt.Errorf("smtp close failed: %w", err)
 	}
 
-	return nil
+	// Return success message with details
+	return fmt.Sprintf("Email sent successfully to %s with subject: %s", strings.Join(to, ", "), subject), nil
+}
+
+// SendEmailTask is the legacy version for backward compatibility
+func SendEmailTask(params map[string]string) error {
+	// Call the new version with a background context
+	_, err := SendEmailTaskV2(context.Background(), params)
+	return err
 }
 
 func buildMimeEmail(from string, to []string, subject, html, text string) string {
@@ -113,4 +144,3 @@ Content-Type: text/html; charset="UTF-8"
 	return fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n%s\r\n%s",
 		from, strings.Join(to, ","), subject, mime, html)
 }
-
