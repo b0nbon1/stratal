@@ -1,0 +1,252 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-01-15T10:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v8.4.5",
+  "resources": [
+    {
+      "_id": "req_001_health_check",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316400000,
+      "created": 1705316400000,
+      "url": "{{ _.base_url }}/health",
+      "name": "1. Health Check",
+      "description": "Check if the Stratal server is running",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705316400000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_002_api_health",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316410000,
+      "created": 1705316410000,
+      "url": "{{ _.base_url }}/api/health",
+      "name": "2. API Health Check",
+      "description": "Check if the API endpoints are working",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705316410000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_003_create_simple_job",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316420000,
+      "created": 1705316420000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "3. Create Simple Parallel Job",
+      "description": "Create a job with multiple parallel tasks that demonstrate task dependencies and output passing",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Simple Parallel Task Test\",\n  \"description\": \"Test job with parallel execution and task dependencies\",\n  \"source\": \"api\",\n  \"run_immediately\": false,\n  \"tasks\": [\n    {\n      \"name\": \"generate_random_1\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo $((RANDOM % 100))\"\n        }\n      }\n    },\n    {\n      \"name\": \"generate_random_2\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo $((RANDOM % 100))\"\n        }\n      }\n    },\n    {\n      \"name\": \"generate_random_3\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo $((RANDOM % 100))\"\n        }\n      }\n    },\n    {\n      \"name\": \"calculate_sum\",\n      \"type\": \"custom\",\n      \"order\": 2,\n      \"config\": {\n        \"depends_on\": [\"generate_random_1\", \"generate_random_2\", \"generate_random_3\"],\n        \"script\": {\n          \"language\": \"python\",\n          \"code\": \"import os\\n\\n# Get outputs from previous tasks\\nnum1 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_1', '0').strip())\\nnum2 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_2', '0').strip())\\nnum3 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_3', '0').strip())\\n\\nsum_result = num1 + num2 + num3\\n\\nprint(f'Numbers: {num1}, {num2}, {num3}')\\nprint(f'Sum: {sum_result}')\\nprint(sum_result)  # Last line is captured as output\"\n        }\n      }\n    },\n    {\n      \"name\": \"check_result\",\n      \"type\": \"custom\",\n      \"order\": 3,\n      \"config\": {\n        \"depends_on\": [\"calculate_sum\"],\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"#!/bin/bash\\n\\n# Access the sum from previous task\\nSUM=${TASK_OUTPUT_CALCULATE_SUM##*$'\\\\n'}  # Get last line\\n\\necho \\\"The sum of three random numbers is: $SUM\\\"\\n\\nif [ \\\"$SUM\\\" -gt 150 ]; then\\n    echo \\\"Result is greater than 150!\\\"\\nelse\\n    echo \\\"Result is less than or equal to 150\\\"\\nfi\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705316420000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_004_create_builtin_job",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316430000,
+      "created": 1705316430000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "4. Create Job with Builtin Tasks",
+      "description": "Create a job that uses builtin tasks like HTTP requests and email sending",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Builtin Tasks Test Job\",\n  \"description\": \"Test job demonstrating builtin tasks like HTTP requests\",\n  \"source\": \"api\",\n  \"run_immediately\": false,\n  \"tasks\": [\n    {\n      \"name\": \"http_health_check\",\n      \"type\": \"builtin\",\n      \"order\": 1,\n      \"config\": {\n        \"parameters\": {\n          \"task_name\": \"http_request\",\n          \"url\": \"https://httpbin.org/get\",\n          \"method\": \"GET\",\n          \"timeout\": \"10s\",\n          \"fail_on_error\": \"true\"\n        }\n      }\n    },\n    {\n      \"name\": \"post_request_test\",\n      \"type\": \"builtin\",\n      \"order\": 2,\n      \"config\": {\n        \"depends_on\": [\"http_health_check\"],\n        \"parameters\": {\n          \"task_name\": \"http_request\",\n          \"url\": \"https://httpbin.org/post\",\n          \"method\": \"POST\",\n          \"content_type\": \"application/json\",\n          \"body\": \"{\\\"test\\\": \\\"data\\\", \\\"timestamp\\\": \\\"2024-01-15\\\"}\",\n          \"header_User-Agent\": \"Stratal-Test-Agent/1.0\",\n          \"timeout\": \"15s\"\n        }\n      }\n    },\n    {\n      \"name\": \"echo_test\",\n      \"type\": \"builtin\",\n      \"order\": 3,\n      \"config\": {\n        \"depends_on\": [\"post_request_test\"],\n        \"parameters\": {\n          \"task_name\": \"echo\",\n          \"message\": \"All HTTP tests completed successfully!\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705316430000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_005_list_jobs",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316440000,
+      "created": 1705316440000,
+      "url": "{{ _.base_url }}/api/v1/jobs?limit=10&offset=0",
+      "name": "5. List All Jobs",
+      "description": "Get a list of all created jobs",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "limit",
+          "value": "10"
+        },
+        {
+          "name": "offset",
+          "value": "0"
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705316440000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_006_get_job_details",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316450000,
+      "created": 1705316450000,
+      "url": "{{ _.base_url }}/api/v1/jobs/{{ _.job_id }}",
+      "name": "6. Get Job Details",
+      "description": "Get details of a specific job by ID. Replace {{ _.job_id }} with actual job ID from previous responses",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705316450000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_007_create_job_run",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316460000,
+      "created": 1705316460000,
+      "url": "{{ _.base_url }}/api/v1/job-runs",
+      "name": "7. Create Job Run",
+      "description": "Create a job run to execute a previously created job. Replace {{ _.job_id }} with actual job ID",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"job_id\": \"{{ _.job_id }}\",\n  \"triggered_by\": \"manual-test\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705316460000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_008_get_job_run_status",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316470000,
+      "created": 1705316470000,
+      "url": "{{ _.base_url }}/api/v1/job-runs/{{ _.job_run_id }}",
+      "name": "8. Get Job Run Status",
+      "description": "Check the status of a job run. Replace {{ _.job_run_id }} with actual job run ID",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705316470000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_009_immediate_job",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316480000,
+      "created": 1705316480000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "9. Create and Run Job Immediately",
+      "description": "Create a job and run it immediately by setting run_immediately to true",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Immediate Execution Test\",\n  \"description\": \"Job that runs immediately upon creation\",\n  \"source\": \"api\",\n  \"run_immediately\": true,\n  \"tasks\": [\n    {\n      \"name\": \"quick_test\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo 'Hello from immediate job execution!'\\ndate\\necho 'Job completed successfully'\"\n        }\n      }\n    },\n    {\n      \"name\": \"environment_check\",\n      \"type\": \"custom\",\n      \"order\": 2,\n      \"config\": {\n        \"depends_on\": [\"quick_test\"],\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo 'System information:'\\necho 'Current user:' $(whoami)\\necho 'Working directory:' $(pwd)\\necho 'Available disk space:'\\ndf -h | head -2\\necho 'Memory info:'\\nfree -h 2>/dev/null || echo 'Memory info not available'\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705316480000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "env_001_base_url",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316490000,
+      "created": 1705316490000,
+      "name": "base_url",
+      "data": {
+        "base_url": "http://localhost:8080"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "base_url"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1705316490000,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_002_job_variables",
+      "parentId": "wrk_stratal_test",
+      "modified": 1705316500000,
+      "created": 1705316500000,
+      "name": "job_variables",
+      "data": {
+        "job_id": "REPLACE_WITH_ACTUAL_JOB_ID",
+        "job_run_id": "REPLACE_WITH_ACTUAL_JOB_RUN_ID"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "job_id",
+          "job_run_id"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1705316500000,
+      "_type": "environment"
+    },
+    {
+      "_id": "wrk_stratal_test",
+      "parentId": null,
+      "modified": 1705316400000,
+      "created": 1705316400000,
+      "name": "Stratal Job System Test",
+      "description": "Complete test suite for Stratal job processing system",
+      "scope": "collection",
+      "_type": "workspace"
+    }
+  ]
+} 

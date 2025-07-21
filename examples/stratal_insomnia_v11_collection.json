@@ -1,0 +1,494 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2024-01-15T12:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v11.0.0",
+  "resources": [
+    {
+      "_id": "req_health_check",
+      "parentId": "fld_health",
+      "modified": 1705396800000,
+      "created": 1705396800000,
+      "url": "{{ _.base_url }}/health",
+      "name": "Server Health Check",
+      "description": "Basic health check for the Stratal server",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396800000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_api_health",
+      "parentId": "fld_health",
+      "modified": 1705396810000,
+      "created": 1705396810000,
+      "url": "{{ _.base_url }}/api/health",
+      "name": "API Health Check",
+      "description": "Health check for API endpoints",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396810000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_create_job",
+      "parentId": "fld_jobs",
+      "modified": 1705396820000,
+      "created": 1705396820000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "Create Job",
+      "description": "Create a new job with tasks",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Test Job\",\n  \"description\": \"A sample job for testing\",\n  \"source\": \"api\",\n  \"run_immediately\": false,\n  \"tasks\": [\n    {\n      \"name\": \"task_1\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo 'Hello from task 1'\"\n        }\n      }\n    },\n    {\n      \"name\": \"task_2\",\n      \"type\": \"custom\",\n      \"order\": 2,\n      \"config\": {\n        \"depends_on\": [\"task_1\"],\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo 'Hello from task 2, depends on task 1'\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396820000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_create_job_immediate",
+      "parentId": "fld_jobs",
+      "modified": 1705396825000,
+      "created": 1705396825000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "Create Job (Run Immediately)",
+      "description": "Create a job and run it immediately",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Immediate Job Test\",\n  \"description\": \"Job that runs immediately upon creation\",\n  \"source\": \"api\",\n  \"run_immediately\": true,\n  \"tasks\": [\n    {\n      \"name\": \"immediate_task\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo 'This job runs immediately!'\\ndate\\necho 'Current directory:' $(pwd)\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396825000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_create_builtin_job",
+      "parentId": "fld_jobs",
+      "modified": 1705396830000,
+      "created": 1705396830000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "Create Job with Builtin Tasks",
+      "description": "Create a job using builtin tasks",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Builtin Tasks Job\",\n  \"description\": \"Job demonstrating builtin tasks\",\n  \"source\": \"api\",\n  \"run_immediately\": false,\n  \"tasks\": [\n    {\n      \"name\": \"http_test\",\n      \"type\": \"builtin\",\n      \"order\": 1,\n      \"config\": {\n        \"parameters\": {\n          \"task_name\": \"http_request\",\n          \"url\": \"https://httpbin.org/get\",\n          \"method\": \"GET\",\n          \"timeout\": \"10s\"\n        }\n      }\n    },\n    {\n      \"name\": \"echo_test\",\n      \"type\": \"builtin\",\n      \"order\": 2,\n      \"config\": {\n        \"depends_on\": [\"http_test\"],\n        \"parameters\": {\n          \"task_name\": \"echo\",\n          \"message\": \"HTTP request completed successfully!\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396830000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_list_jobs",
+      "parentId": "fld_jobs",
+      "modified": 1705396840000,
+      "created": 1705396840000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "List Jobs",
+      "description": "Get a list of all jobs with pagination",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "limit",
+          "value": "10"
+        },
+        {
+          "name": "offset",
+          "value": "0"
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396840000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_get_job",
+      "parentId": "fld_jobs",
+      "modified": 1705396850000,
+      "created": 1705396850000,
+      "url": "{{ _.base_url }}/api/v1/jobs/{{ _.job_id }}",
+      "name": "Get Job by ID",
+      "description": "Get detailed information about a specific job",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396850000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_create_job_run",
+      "parentId": "fld_job_runs",
+      "modified": 1705396860000,
+      "created": 1705396860000,
+      "url": "{{ _.base_url }}/api/v1/job-runs",
+      "name": "Create Job Run",
+      "description": "Create a job run to execute a job",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"job_id\": \"{{ _.job_id }}\",\n  \"triggered_by\": \"manual\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396860000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_get_job_runs",
+      "parentId": "fld_job_runs",
+      "modified": 1705396870000,
+      "created": 1705396870000,
+      "url": "{{ _.base_url }}/api/v1/job-runs",
+      "name": "Get Job Runs (List)",
+      "description": "Get list of job runs",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396870000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_get_job_run_by_id",
+      "parentId": "fld_job_runs",
+      "modified": 1705396880000,
+      "created": 1705396880000,
+      "url": "{{ _.base_url }}/api/v1/job-runs/{{ _.job_run_id }}",
+      "name": "Get Job Run by ID",
+      "description": "Get detailed information about a specific job run",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396880000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_create_secret",
+      "parentId": "fld_secrets",
+      "modified": 1705396890000,
+      "created": 1705396890000,
+      "url": "{{ _.base_url }}/api/v1/secrets",
+      "name": "Create Secret",
+      "description": "Create a new encrypted secret",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"test_secret\",\n  \"value\": \"my_secret_value_123\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396890000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_list_secrets",
+      "parentId": "fld_secrets",
+      "modified": 1705396900000,
+      "created": 1705396900000,
+      "url": "{{ _.base_url }}/api/v1/secrets",
+      "name": "List Secrets",
+      "description": "Get a list of all secrets (names only, values are encrypted)",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396900000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_update_secret",
+      "parentId": "fld_secrets",
+      "modified": 1705396910000,
+      "created": 1705396910000,
+      "url": "{{ _.base_url }}/api/v1/secrets",
+      "name": "Update Secret",
+      "description": "Update an existing secret value",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"value\": \"updated_secret_value_456\"\n}"
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "value": "{{ _.secret_id }}"
+        }
+      ],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396910000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_delete_secret",
+      "parentId": "fld_secrets",
+      "modified": 1705396920000,
+      "created": 1705396920000,
+      "url": "{{ _.base_url }}/api/v1/secrets",
+      "name": "Delete Secret",
+      "description": "Delete a secret by ID",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [
+        {
+          "name": "id",
+          "value": "{{ _.secret_id }}"
+        }
+      ],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1705396920000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_job_with_secrets",
+      "parentId": "fld_advanced",
+      "modified": 1705396930000,
+      "created": 1705396930000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "Create Job with Secrets",
+      "description": "Create a job that uses encrypted secrets",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Job with Secrets\",\n  \"description\": \"Demonstrates using encrypted secrets in tasks\",\n  \"source\": \"api\",\n  \"run_immediately\": false,\n  \"tasks\": [\n    {\n      \"name\": \"task_with_secret\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"secrets\": {\n          \"test_secret\": \"SECRET_VAR\"\n        },\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo 'Using secret value: $SECRET_VAR'\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396930000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_parallel_job",
+      "parentId": "fld_advanced",
+      "modified": 1705396940000,
+      "created": 1705396940000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "Create Parallel Job",
+      "description": "Create a job with parallel tasks and dependencies",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Parallel Task Execution\",\n  \"description\": \"Job with parallel execution and output passing\",\n  \"source\": \"api\",\n  \"run_immediately\": false,\n  \"tasks\": [\n    {\n      \"name\": \"generate_random_1\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo $((RANDOM % 100))\"\n        }\n      }\n    },\n    {\n      \"name\": \"generate_random_2\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo $((RANDOM % 100))\"\n        }\n      }\n    },\n    {\n      \"name\": \"generate_random_3\",\n      \"type\": \"custom\",\n      \"order\": 1,\n      \"config\": {\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"echo $((RANDOM % 100))\"\n        }\n      }\n    },\n    {\n      \"name\": \"calculate_sum\",\n      \"type\": \"custom\",\n      \"order\": 2,\n      \"config\": {\n        \"depends_on\": [\"generate_random_1\", \"generate_random_2\", \"generate_random_3\"],\n        \"script\": {\n          \"language\": \"python\",\n          \"code\": \"import os\\n\\n# Get outputs from previous tasks\\nnum1 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_1', '0').strip())\\nnum2 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_2', '0').strip())\\nnum3 = int(os.environ.get('TASK_OUTPUT_GENERATE_RANDOM_3', '0').strip())\\n\\nsum_result = num1 + num2 + num3\\n\\nprint(f'Numbers: {num1}, {num2}, {num3}')\\nprint(f'Sum: {sum_result}')\\nprint(sum_result)\"\n        }\n      }\n    },\n    {\n      \"name\": \"check_result\",\n      \"type\": \"custom\",\n      \"order\": 3,\n      \"config\": {\n        \"depends_on\": [\"calculate_sum\"],\n        \"script\": {\n          \"language\": \"bash\",\n          \"code\": \"SUM=${TASK_OUTPUT_CALCULATE_SUM##*$'\\\\n'}\\necho \\\"Sum result: $SUM\\\"\\nif [ \\\"$SUM\\\" -gt 150 ]; then\\n    echo \\\"High sum!\\\"\\nelse\\n    echo \\\"Low sum\\\"\\nfi\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396940000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_email_job",
+      "parentId": "fld_advanced",
+      "modified": 1705396950000,
+      "created": 1705396950000,
+      "url": "{{ _.base_url }}/api/v1/jobs",
+      "name": "Create Email Job",
+      "description": "Create a job that sends emails using builtin task",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Email Notification Job\",\n  \"description\": \"Job that sends email notifications\",\n  \"source\": \"api\",\n  \"run_immediately\": false,\n  \"tasks\": [\n    {\n      \"name\": \"send_notification\",\n      \"type\": \"builtin\",\n      \"order\": 1,\n      \"config\": {\n        \"parameters\": {\n          \"task_name\": \"send_email\",\n          \"smtp_host\": \"smtp.gmail.com\",\n          \"smtp_port\": \"587\",\n          \"smtp_user\": \"your-email@gmail.com\",\n          \"smtp_password\": \"your-app-password\",\n          \"from\": \"your-email@gmail.com\",\n          \"to\": \"recipient@example.com\",\n          \"subject\": \"Test Email from Stratal\",\n          \"body_text\": \"This is a test email sent from Stratal job system.\",\n          \"body_html\": \"<h1>Test Email</h1><p>This is a test email sent from <strong>Stratal</strong> job system.</p>\"\n        }\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1705396950000,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "fld_health",
+      "parentId": "wrk_stratal",
+      "modified": 1705396700000,
+      "created": 1705396700000,
+      "name": "01. Health Checks",
+      "description": "Health check endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705396700000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "fld_jobs",
+      "parentId": "wrk_stratal",
+      "modified": 1705396710000,
+      "created": 1705396710000,
+      "name": "02. Jobs",
+      "description": "Job management endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705396710000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "fld_job_runs",
+      "parentId": "wrk_stratal",
+      "modified": 1705396720000,
+      "created": 1705396720000,
+      "name": "03. Job Runs",
+      "description": "Job execution endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705396720000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "fld_secrets",
+      "parentId": "wrk_stratal",
+      "modified": 1705396730000,
+      "created": 1705396730000,
+      "name": "04. Secrets",
+      "description": "Secret management endpoints",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705396730000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "fld_advanced",
+      "parentId": "wrk_stratal",
+      "modified": 1705396740000,
+      "created": 1705396740000,
+      "name": "05. Advanced Examples",
+      "description": "Complex job examples and use cases",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1705396740000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "env_base",
+      "parentId": "wrk_stratal",
+      "modified": 1705396600000,
+      "created": 1705396600000,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8080"
+      },
+      "dataPropertyOrder": {
+        "&": ["base_url"]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1705396600000,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_variables",
+      "parentId": "wrk_stratal",
+      "modified": 1705396610000,
+      "created": 1705396610000,
+      "name": "Variables",
+      "data": {
+        "job_id": "REPLACE_WITH_ACTUAL_JOB_ID",
+        "job_run_id": "REPLACE_WITH_ACTUAL_JOB_RUN_ID",
+        "secret_id": "REPLACE_WITH_ACTUAL_SECRET_ID"
+      },
+      "dataPropertyOrder": {
+        "&": ["job_id", "job_run_id", "secret_id"]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1705396610000,
+      "_type": "environment"
+    },
+    {
+      "_id": "wrk_stratal",
+      "parentId": null,
+      "modified": 1705396500000,
+      "created": 1705396500000,
+      "name": "Stratal API Complete Collection",
+      "description": "Complete API collection for Stratal job processing system",
+      "scope": "collection",
+      "_type": "workspace"
+    }
+  ]
+} 

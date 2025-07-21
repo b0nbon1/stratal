@@ -56,7 +56,7 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		Name:        reqBodyJob.Name,
 		Description: pgtype.Text{String: reqBodyJob.Description, Valid: true},
 		Source:      reqBodyJob.Source,
-		RawPayload:  reqBodyJob.RawPayload,
+		RawPayload:  []byte(reqBodyJob.RawPayload),
 	}
 
 	// create Tasks that will be linked to the Job

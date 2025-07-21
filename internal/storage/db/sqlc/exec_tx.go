@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 )
 
 // ExecTx executes a function within a database transaction
@@ -15,6 +16,7 @@ func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) erro
 	q := New(tx)
 	err = fn(q)
 	if err != nil {
+		log.Printf("Transaction failed: %v", err)
 		if rbErr := tx.Rollback(ctx); rbErr != nil {
 			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
 		}

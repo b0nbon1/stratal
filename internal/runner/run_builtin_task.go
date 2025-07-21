@@ -15,10 +15,6 @@ type TaskFunc func(ctx context.Context, params map[string]string) (string, error
 var taskRegistry = map[string]TaskFunc{
 	"send_email":       tasks.SendEmailTaskV2,
 	"http_request":     tasks.HTTPRequestTask,
-	// Add more builtin tasks here as they are implemented
-	// "database_query": tasks.DatabaseQueryTask,
-	// "file_operation": tasks.FileOperationTask,
-	// "slack_notification": tasks.SlackNotificationTask,
 }
 
 // RunBuiltinTask executes a builtin task by name with given parameters
@@ -66,26 +62,6 @@ func GetAvailableTasks() []string {
 	return tasks
 }
 
-// wrapLegacyTask wraps old-style task functions that don't accept context
-func wrapLegacyTask(fn func(map[string]string) error) TaskFunc {
-	return func(ctx context.Context, params map[string]string) (string, error) {
-		// Check context cancellation before executing
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		default:
-		}
-
-		// Execute the legacy task
-		err := fn(params)
-		if err != nil {
-			return "", err
-		}
-
-		return "Task completed successfully", nil
-	}
-}
-
 // Example of a simple builtin task that accepts context
 func echoTask(ctx context.Context, params map[string]string) (string, error) {
 	message, exists := params["message"]
@@ -100,4 +76,6 @@ func echoTask(ctx context.Context, params map[string]string) (string, error) {
 func init() {
 	// Register the echo task as an example
 	taskRegistry["echo"] = echoTask
+	taskRegistry["send_email"] = tasks.SendEmailTaskV2
+	taskRegistry["http_request"] = tasks.HTTPRequestTask
 }
