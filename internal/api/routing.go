@@ -39,8 +39,12 @@ func (hs *HTTPServer) registerRoutes() *router.Router {
 
 	v1.Post("/secrets", hs.CreateSecret)
 	v1.Get("/secrets", hs.ListSecrets)
-	v1.Put("/secrets", hs.UpdateSecret)
-	v1.Delete("/secrets", hs.DeleteSecret)
+
+	// Add log routes
+	if hs.logSystem != nil {
+		logsHandler := NewLogsHandler(hs.store, hs.logSystem.GetStreamer())
+		logsHandler.RegisterLogRoutes(v1)
+	}
 
 	return r
 }

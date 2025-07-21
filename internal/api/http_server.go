@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/b0nbon1/stratal/internal/logger"
 	"github.com/b0nbon1/stratal/internal/queue"
 	"github.com/b0nbon1/stratal/internal/security"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
@@ -23,6 +24,7 @@ type HTTPServer struct {
 	cancel        context.CancelFunc
 	queue         queue.TaskQueue
 	secretManager *security.SecretManager
+	logSystem     *logger.Logger // Add logger system
 }
 
 func NewHTTPServer(addr string, store *db.SQLStore, queue queue.TaskQueue, secretManager *security.SecretManager) *HTTPServer {
@@ -35,9 +37,15 @@ func NewHTTPServer(addr string, store *db.SQLStore, queue queue.TaskQueue, secre
 		cancel:        cancel,
 		queue:         queue,
 		secretManager: secretManager,
+		logSystem:     logger.NewLogger(store, "internal/storage/files/logs"), // Initialize logger
 	}
 
 	return s
+}
+
+// GetLogSystem returns the logger system for use by workers
+func (httpServer *HTTPServer) GetLogSystem() *logger.Logger {
+	return httpServer.logSystem
 }
 
 func (httpServer *HTTPServer) Start() error {
@@ -66,6 +74,11 @@ func (httpServer *HTTPServer) Stop() error {
 
 	if !httpServer.isInitialized {
 		return fmt.Errorf("server not initialized")
+	}
+
+	// Close logger system
+	if httpServer.logSystem != nil {
+		httpServer.logSystem.Close()
 	}
 
 	if err := httpServer.Server.Close(); err != nil {

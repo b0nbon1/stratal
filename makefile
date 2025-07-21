@@ -23,7 +23,7 @@ create-migrate-with-name:
 		echo "Migration name cannot be empty"; \
 		exit 1; \
 	fi; \
-	migrate create -ext sql -dir db/migration/ -seq "$$name"
+	migrate create -ext sql -dir internal/storage/db/migration/ -seq "$$name"
 
 # run migrations
 migrateup:

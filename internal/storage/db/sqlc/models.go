@@ -33,6 +33,19 @@ type JobRun struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
+type Log struct {
+	ID        int64              `json:"id"`
+	Type      string             `json:"type"`
+	JobRunID  pgtype.UUID        `json:"job_run_id"`
+	TaskRunID pgtype.UUID        `json:"task_run_id"`
+	Timestamp pgtype.Timestamp   `json:"timestamp"`
+	Level     string             `json:"level"`
+	Stream    string             `json:"stream"`
+	Message   string             `json:"message"`
+	Metadata  []byte             `json:"metadata"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Secret struct {
 	ID             pgtype.UUID        `json:"id"`
 	UserID         pgtype.UUID        `json:"user_id"`
@@ -51,14 +64,6 @@ type Task struct {
 	Order     int32              `json:"order"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-}
-
-type TaskLog struct {
-	ID        int64            `json:"id"`
-	TaskRunID pgtype.UUID      `json:"task_run_id"`
-	Timestamp pgtype.Timestamp `json:"timestamp"`
-	Stream    string           `json:"stream"`
-	Message   string           `json:"message"`
 }
 
 type TaskRun struct {

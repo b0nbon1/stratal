@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/b0nbon1/stratal/internal/logger"
 	"github.com/b0nbon1/stratal/internal/processor"
 	"github.com/b0nbon1/stratal/internal/queue"
 	"github.com/b0nbon1/stratal/internal/security"
@@ -18,6 +19,10 @@ func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
 }
 
 func StartWorkerWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager) {
+	// Initialize the logger system
+	logSystem := logger.NewLogger(store, "internal/storage/files/logs")
+	defer logSystem.Close()
+
 	fmt.Println("Starting worker...")
 	for {
 		select {
@@ -26,17 +31,17 @@ func StartWorkerWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQ
 			return
 		default:
 			fmt.Println("Processing next job...")
-			processNextJobWithSecrets(ctx, q, store, secretManager)
+			processNextJobWithSecrets(ctx, q, store, secretManager, logSystem)
 			fmt.Println("Job processed")
 		}
 	}
 }
 
 func processNextJob(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
-	processNextJobWithSecrets(ctx, q, store, nil)
+	processNextJobWithSecrets(ctx, q, store, nil, nil)
 }
 
-func processNextJobWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager) {
+func processNextJobWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager, logSystem *logger.Logger) {
 	fmt.Println("Worker polling for jobs...")
 
 	jobRunId, err := q.Dequeue()
@@ -58,19 +63,46 @@ func processNextJobWithSecrets(ctx context.Context, q queue.TaskQueue, store *db
 		return
 	}
 
+	// Get or create a logger for this job run
+	var jobLogger *logger.JobRunLogger
+	if logSystem != nil {
+		jobLogger, err = logSystem.GetJobRunLogger(jobRunId)
+		if err != nil {
+			fmt.Printf("Error creating logger for job_run %s: %v\n", jobRunId, err)
+			// Continue processing even if logger creation fails
+		}
+	}
+
+	// Log job run start
+	if jobLogger != nil {
+		jobLogger.Info(fmt.Sprintf("Starting job run %s", jobRunId))
+	}
+
 	// Process the job
-	if err := processJobRunWithSecrets(ctx, store, jobRunIdUUID, secretManager); err != nil {
+	if err := processJobRunWithSecrets(ctx, store, jobRunIdUUID, secretManager, jobLogger); err != nil {
 		fmt.Printf("Error processing job_run %s: %v\n", jobRunId, err)
+		if jobLogger != nil {
+			jobLogger.Error(fmt.Sprintf("Job run failed: %v", err))
+		}
 		// Job stays in failed state, could implement retry logic here
 		updateJobRunError(ctx, store, jobRunIdUUID, "Failed to process job", err)
+	} else {
+		if jobLogger != nil {
+			jobLogger.Info(fmt.Sprintf("Job run %s completed successfully", jobRunId))
+		}
+	}
+
+	// Close the logger for this job run when done
+	if logSystem != nil {
+		logSystem.CloseJobRunLogger(jobRunId)
 	}
 }
 
 func processJobRun(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID) error {
-	return processJobRunWithSecrets(ctx, store, jobRunID, nil)
+	return processJobRunWithSecrets(ctx, store, jobRunID, nil, nil)
 }
 
-func processJobRunWithSecrets(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, secretManager *security.SecretManager) error {
+func processJobRunWithSecrets(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, secretManager *security.SecretManager, jobLogger *logger.JobRunLogger) error {
 	// Fetch job run
 	jobRun, err := store.GetJobRun(ctx, jobRunID)
 	if err != nil {
@@ -107,9 +139,9 @@ func processJobRunWithSecrets(ctx context.Context, store *db.SQLStore, jobRunID 
 
 	// Process the job using the processor
 	if secretManager != nil {
-		return processor.ProcessJobWithSecrets(ctx, store, secretManager, jobRunID, job)
+		return processor.ProcessJobWithSecrets(ctx, store, secretManager, jobRunID, job, jobLogger)
 	} else {
-		return processor.ProcessJob(ctx, store, jobRunID, job)
+		return processor.ProcessJob(ctx, store, jobRunID, job, jobLogger)
 	}
 }
 

@@ -1,0 +1,30 @@
+{
+  "name": "Logging Example Job",
+  "description": "Example job demonstrating the logging functionality",
+  "source": "cli",
+  "tasks": [
+    {
+      "name": "info_task",
+      "type": "builtin",
+      "config": {
+        "parameters": {
+          "url": "https://httpbin.org/get",
+          "method": "GET"
+        }
+      },
+      "order": 1
+    },
+    {
+      "name": "format_output",
+      "type": "builtin",
+      "config": {
+        "parameters": {
+          "input": "${TASK_OUTPUT.info_task}",
+          "template": "Request completed successfully: {{.}}"
+        },
+        "depends_on": ["info_task"]
+      },
+      "order": 2
+    }
+  ]
+} 

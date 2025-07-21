@@ -11,20 +11,32 @@ import (
 )
 
 type Querier interface {
+	CountLogsByJobRun(ctx context.Context, jobRunID pgtype.UUID) (int64, error)
+	CountLogsByTaskRun(ctx context.Context, taskRunID pgtype.UUID) (int64, error)
+	CountLogsByType(ctx context.Context, type_ string) (int64, error)
 	CreateBulkTasks(ctx context.Context, arg CreateBulkTasksParams) ([]CreateBulkTasksRow, error)
 	CreateJob(ctx context.Context, arg CreateJobParams) (CreateJobRow, error)
+	CreateJobLog(ctx context.Context, arg CreateJobLogParams) error
 	CreateJobRun(ctx context.Context, arg CreateJobRunParams) (CreateJobRunRow, error)
+	CreateLog(ctx context.Context, arg CreateLogParams) error
 	CreateSecret(ctx context.Context, arg CreateSecretParams) (CreateSecretRow, error)
+	CreateSystemLog(ctx context.Context, arg CreateSystemLogParams) error
 	CreateTask(ctx context.Context, arg CreateTaskParams) (CreateTaskRow, error)
+	CreateTaskLog(ctx context.Context, arg CreateTaskLogParams) error
 	CreateTaskRun(ctx context.Context, arg CreateTaskRunParams) (CreateTaskRunRow, error)
 	DeleteJob(ctx context.Context, id pgtype.UUID) error
 	DeleteJobRun(ctx context.Context, id pgtype.UUID) error
+	DeleteLog(ctx context.Context, id int64) error
+	DeleteLogsByJobRun(ctx context.Context, jobRunID pgtype.UUID) error
+	DeleteLogsByTaskRun(ctx context.Context, taskRunID pgtype.UUID) error
+	DeleteLogsByType(ctx context.Context, type_ string) error
 	DeleteSecret(ctx context.Context, arg DeleteSecretParams) error
 	DeleteTask(ctx context.Context, id pgtype.UUID) error
 	DeleteTaskRun(ctx context.Context, id pgtype.UUID) error
 	GetJob(ctx context.Context, id pgtype.UUID) (GetJobRow, error)
 	GetJobRun(ctx context.Context, id pgtype.UUID) (GetJobRunRow, error)
 	GetJobWithTasks(ctx context.Context, id pgtype.UUID) (GetJobWithTasksRow, error)
+	GetLog(ctx context.Context, id int64) (Log, error)
 	GetSecret(ctx context.Context, arg GetSecretParams) (GetSecretRow, error)
 	GetSecretByName(ctx context.Context, arg GetSecretByNameParams) (GetSecretByNameRow, error)
 	GetTask(ctx context.Context, id pgtype.UUID) (GetTaskRow, error)
@@ -34,8 +46,16 @@ type Querier interface {
 	JobRunsWithTasks(ctx context.Context, id pgtype.UUID) (JobRunsWithTasksRow, error)
 	ListJobRuns(ctx context.Context, jobID pgtype.UUID) ([]ListJobRunsRow, error)
 	ListJobs(ctx context.Context, arg ListJobsParams) ([]ListJobsRow, error)
+	ListLogs(ctx context.Context, arg ListLogsParams) ([]Log, error)
+	ListLogsByJobRun(ctx context.Context, jobRunID pgtype.UUID) ([]Log, error)
+	ListLogsByJobRunAndLevel(ctx context.Context, arg ListLogsByJobRunAndLevelParams) ([]Log, error)
+	ListLogsByJobRunPaginated(ctx context.Context, arg ListLogsByJobRunPaginatedParams) ([]Log, error)
+	ListLogsByLevel(ctx context.Context, arg ListLogsByLevelParams) ([]Log, error)
+	ListLogsByTaskRun(ctx context.Context, taskRunID pgtype.UUID) ([]Log, error)
+	ListLogsByType(ctx context.Context, arg ListLogsByTypeParams) ([]Log, error)
 	ListPendingJobRuns(ctx context.Context) ([]ListPendingJobRunsRow, error)
 	ListSecrets(ctx context.Context, userID pgtype.UUID) ([]ListSecretsRow, error)
+	ListSystemLogs(ctx context.Context, arg ListSystemLogsParams) ([]Log, error)
 	ListTaskRuns(ctx context.Context, jobRunID pgtype.UUID) ([]ListTaskRunsRow, error)
 	ListTaskRunsByJob(ctx context.Context, id pgtype.UUID) ([]ListTaskRunsByJobRow, error)
 	ListTasks(ctx context.Context, jobID pgtype.UUID) ([]ListTasksRow, error)

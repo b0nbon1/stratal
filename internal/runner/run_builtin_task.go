@@ -44,7 +44,6 @@ func RunBuiltinTask(ctx context.Context, name string, params map[string]string, 
 
 	// Execute task with context
 	output, err := taskFunc(ctx, params)
-
 	if err != nil {
 		return output, fmt.Errorf("task %s failed: %w", taskName, err)
 	}
@@ -85,7 +84,6 @@ func echoTask(ctx context.Context, params map[string]string) (string, error) {
 
 // Initialize with some basic tasks
 func init() {
-	// Register the echo task as an example
 	taskRegistry["echo"] = echoTask
 	taskRegistry["send_email"] = tasks.SendEmailTaskV2
 	taskRegistry["http_request"] = tasks.HTTPRequestTask
