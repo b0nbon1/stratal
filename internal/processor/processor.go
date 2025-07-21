@@ -81,9 +81,9 @@ func ProcessJobWithSecrets(ctx context.Context, store *db.SQLStore, secretManage
 		var err error
 
 		if secretManager != nil {
-			output, err = ExecuteTaskWithSecrets(ctx, task, store, secretManager, userID, taskOutputs)
+			output, err = ExecuteTaskWithSecrets(ctx, task, store, secretManager, userID, taskOutputs, jobRunID)
 		} else {
-			output, err = ExecuteTaskWithOutputs(ctx, task, taskOutputs, taskNameToID)
+			output, err = ExecuteTaskWithOutputs(ctx, task, taskOutputs, taskNameToID, jobRunID, store)
 		}
 
 		if err != nil {
@@ -97,6 +97,23 @@ func ProcessJobWithSecrets(ctx context.Context, store *db.SQLStore, secretManage
 				fmt.Printf("Failed to update job run error: %v\n", failErr)
 			}
 			return err
+		}
+
+		// Find the task run ID using job_run_id and task_id
+		taskRun, err := store.GetTaskRunByJobRunAndTaskID(ctx, db.GetTaskRunByJobRunAndTaskIDParams{
+			JobRunID: jobRunID,
+			TaskID:   task.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to find task run for job_run_id %s and task_id %s: %w", jobRunID.String(), task.ID.String(), err)
+		}
+
+		err = store.UpdateTaskRunOutput(ctx, db.UpdateTaskRunOutputParams{
+			ID:     taskRun.ID,
+			Output: utils.ParseText(output),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update task run output: %w", err)
 		}
 
 		// Store task output for subsequent tasks
@@ -285,7 +302,7 @@ func executeTasksInParallel(
 			}
 
 			// Execute the task
-			output, taskErr := ExecuteTaskWithOutputs(ctx, interpolatedTask, previousOutputs, taskNameToID)
+			output, taskErr := ExecuteTaskWithOutputs(ctx, interpolatedTask, previousOutputs, taskNameToID, taskRun.JobRunID, store)
 			result.Output = output
 			result.Error = taskErr
 

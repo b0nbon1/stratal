@@ -101,6 +101,48 @@ func (q *Queries) GetTaskRun(ctx context.Context, id pgtype.UUID) (GetTaskRunRow
 	return i, err
 }
 
+const getTaskRunByJobRunAndTaskID = `-- name: GetTaskRunByJobRunAndTaskID :one
+SELECT id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message, created_at
+FROM task_runs
+WHERE job_run_id = $1 AND task_id = $2 LIMIT 1
+`
+
+type GetTaskRunByJobRunAndTaskIDParams struct {
+	JobRunID pgtype.UUID `json:"job_run_id"`
+	TaskID   pgtype.UUID `json:"task_id"`
+}
+
+type GetTaskRunByJobRunAndTaskIDRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	JobRunID     pgtype.UUID        `json:"job_run_id"`
+	TaskID       pgtype.UUID        `json:"task_id"`
+	Status       pgtype.Text        `json:"status"`
+	StartedAt    pgtype.Timestamp   `json:"started_at"`
+	FinishedAt   pgtype.Timestamp   `json:"finished_at"`
+	ExitCode     pgtype.Int4        `json:"exit_code"`
+	Output       pgtype.Text        `json:"output"`
+	ErrorMessage pgtype.Text        `json:"error_message"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) GetTaskRunByJobRunAndTaskID(ctx context.Context, arg GetTaskRunByJobRunAndTaskIDParams) (GetTaskRunByJobRunAndTaskIDRow, error) {
+	row := q.db.QueryRow(ctx, getTaskRunByJobRunAndTaskID, arg.JobRunID, arg.TaskID)
+	var i GetTaskRunByJobRunAndTaskIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.JobRunID,
+		&i.TaskID,
+		&i.Status,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.ExitCode,
+		&i.Output,
+		&i.ErrorMessage,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listTaskRuns = `-- name: ListTaskRuns :many
 SELECT id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message, created_at
 FROM task_runs
@@ -246,6 +288,22 @@ type UpdateTaskRunErrorParams struct {
 
 func (q *Queries) UpdateTaskRunError(ctx context.Context, arg UpdateTaskRunErrorParams) error {
 	_, err := q.db.Exec(ctx, updateTaskRunError, arg.ID, arg.ErrorMessage)
+	return err
+}
+
+const updateTaskRunOutput = `-- name: UpdateTaskRunOutput :exec
+UPDATE task_runs
+SET output = $2, updated_at = CURRENT_TIMESTAMP, finished_at = CURRENT_TIMESTAMP, status = 'completed'
+WHERE id = $1
+`
+
+type UpdateTaskRunOutputParams struct {
+	ID     pgtype.UUID `json:"id"`
+	Output pgtype.Text `json:"output"`
+}
+
+func (q *Queries) UpdateTaskRunOutput(ctx context.Context, arg UpdateTaskRunOutputParams) error {
+	_, err := q.db.Exec(ctx, updateTaskRunOutput, arg.ID, arg.Output)
 	return err
 }
 

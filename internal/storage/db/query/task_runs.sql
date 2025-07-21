@@ -8,6 +8,11 @@ SELECT id, job_run_id, task_id, status, started_at, finished_at, exit_code, outp
 FROM task_runs
 WHERE id = $1 LIMIT 1;
 
+-- name: GetTaskRunByJobRunAndTaskID :one
+SELECT id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message, created_at
+FROM task_runs
+WHERE job_run_id = $1 AND task_id = $2 LIMIT 1;
+
 -- name: ListTaskRuns :many
 SELECT id, job_run_id, task_id, status, started_at, finished_at, exit_code, output, error_message, created_at
 FROM task_runs
@@ -34,6 +39,11 @@ WHERE id = $1;
 -- name: UpdateTaskRunError :exec
 UPDATE task_runs
 SET error_message = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;
+
+-- name: UpdateTaskRunOutput :exec
+UPDATE task_runs
+SET output = $2, updated_at = CURRENT_TIMESTAMP, finished_at = CURRENT_TIMESTAMP, status = 'completed'
 WHERE id = $1;
 
 -- name: DeleteTaskRun :exec

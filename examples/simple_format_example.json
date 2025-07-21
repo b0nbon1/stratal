@@ -1,0 +1,67 @@
+{
+  "name": "Simple Format Output Example",
+  "description": "Basic example of formatting data from other tasks",
+  "source": "api",
+  "run_immediately": true,
+  "tasks": [
+    {
+      "name": "get_user_info",
+      "type": "builtin",
+      "order": 1,
+      "config": {
+        "parameters": {
+          "task_name": "http_request",
+          "url": "https://jsonplaceholder.typicode.com/users/1",
+          "method": "GET"
+        }
+      }
+    },
+    {
+      "name": "format_user_summary",
+      "type": "builtin",
+      "order": 2,
+      "config": {
+        "depends_on": ["get_user_info"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "text",
+          "template": "User Information Summary\\n========================\\nGenerated: ${timestamp}\\nAPI Response:\\n${get_user_info.output}\\n\\nReport Status: ${status}",
+          "include_timestamp": "true",
+          "field_status": "SUCCESS"
+        }
+      }
+    },
+    {
+      "name": "create_json_report",
+      "type": "builtin",
+      "order": 3,
+      "config": {
+        "depends_on": ["format_user_summary"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "json",
+          "template": "{\"report_type\": \"user_summary\", \"summary_text\": \"${format_user_summary.output}\", \"api_data\": \"${get_user_info.output}\"}",
+          "pretty": "true",
+          "include_metadata": "true"
+        }
+      }
+    },
+    {
+      "name": "create_simple_table",
+      "type": "builtin",
+      "order": 4,
+      "config": {
+        "depends_on": ["create_json_report"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "table",
+          "template": "Task | Status | Length",
+          "include_timestamp": "true",
+          "field_get_user_info": "COMPLETED",
+          "field_format_summary": "COMPLETED",
+          "field_json_report": "COMPLETED"
+        }
+      }
+    }
+  ]
+} 

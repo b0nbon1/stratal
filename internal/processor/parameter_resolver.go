@@ -61,14 +61,27 @@ func (pr *ParameterResolver) ResolveParameters(
 	return resolvedParams, secretEnvVars, nil
 }
 
-// resolveTaskOutputReferences replaces ${TASK_OUTPUT.task_name} with actual values
+// resolveTaskOutputReferences replaces ${TASK_OUTPUT.task_name} and ${task_name.output} with actual values
 func (pr *ParameterResolver) resolveTaskOutputReferences(value string, taskOutputs map[string]string) string {
-	re := regexp.MustCompile(`\$\{TASK_OUTPUT\.([^}]+)\}`)
-	return re.ReplaceAllStringFunc(value, func(match string) string {
+	// Handle ${TASK_OUTPUT.task_name} pattern
+	re1 := regexp.MustCompile(`\$\{TASK_OUTPUT\.([^}]+)\}`)
+	value = re1.ReplaceAllStringFunc(value, func(match string) string {
 		taskName := strings.TrimPrefix(strings.TrimSuffix(match, "}"), "${TASK_OUTPUT.")
 		if output, exists := taskOutputs[taskName]; exists {
 			return output
 		}
 		return match // Keep original if not found
 	})
+
+	// Handle ${task_name.output} pattern
+	re2 := regexp.MustCompile(`\$\{([^}]+)\.output\}`)
+	value = re2.ReplaceAllStringFunc(value, func(match string) string {
+		taskName := strings.TrimSuffix(strings.TrimPrefix(match, "${"), ".output}")
+		if output, exists := taskOutputs[taskName]; exists {
+			return output
+		}
+		return match // Keep original if not found
+	})
+
+	return value
 }

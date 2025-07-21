@@ -29,6 +29,7 @@ type Querier interface {
 	GetSecretByName(ctx context.Context, arg GetSecretByNameParams) (GetSecretByNameRow, error)
 	GetTask(ctx context.Context, id pgtype.UUID) (GetTaskRow, error)
 	GetTaskRun(ctx context.Context, id pgtype.UUID) (GetTaskRunRow, error)
+	GetTaskRunByJobRunAndTaskID(ctx context.Context, arg GetTaskRunByJobRunAndTaskIDParams) (GetTaskRunByJobRunAndTaskIDRow, error)
 	GetTasksByJobID(ctx context.Context, jobID pgtype.UUID) ([]GetTasksByJobIDRow, error)
 	JobRunsWithTasks(ctx context.Context, id pgtype.UUID) (JobRunsWithTasksRow, error)
 	ListJobRuns(ctx context.Context, jobID pgtype.UUID) ([]ListJobRunsRow, error)
@@ -46,6 +47,7 @@ type Querier interface {
 	UpdateTask(ctx context.Context, arg UpdateTaskParams) error
 	UpdateTaskRun(ctx context.Context, arg UpdateTaskRunParams) error
 	UpdateTaskRunError(ctx context.Context, arg UpdateTaskRunErrorParams) error
+	UpdateTaskRunOutput(ctx context.Context, arg UpdateTaskRunOutputParams) error
 	UpdateTaskRunStatus(ctx context.Context, arg UpdateTaskRunStatusParams) error
 }
 

@@ -13,14 +13,25 @@ type TaskFunc func(ctx context.Context, params map[string]string) (string, error
 
 // taskRegistry holds all registered builtin tasks
 var taskRegistry = map[string]TaskFunc{
-	"send_email":       tasks.SendEmailTaskV2,
-	"http_request":     tasks.HTTPRequestTask,
+	"send_email":   tasks.SendEmailTaskV2,
+	"http_request": tasks.HTTPRequestTask,
 }
 
 // RunBuiltinTask executes a builtin task by name with given parameters
-func RunBuiltinTask(ctx context.Context, name string, params map[string]string) (string, error) {
+func RunBuiltinTask(ctx context.Context, name string, params map[string]string, outputs map[string]string) (string, error) {
 	// Normalize task name
-	taskName := strings.ToLower(strings.TrimSpace(name))
+	taskName := strings.ToLower(strings.TrimSpace(params["task_name"]))
+
+	// Add outputs to params
+	for key, value := range outputs {
+		envName := fmt.Sprintf("TASK_OUTPUT_%s", strings.ToUpper(strings.ReplaceAll(key, "-", "_")))
+
+		// check if the key is already in params
+		if _, exists := params[envName]; exists {
+			continue
+		}
+		params[envName] = value
+	}
 
 	// Look up task in registry
 	taskFunc, exists := taskRegistry[taskName]
@@ -78,4 +89,5 @@ func init() {
 	taskRegistry["echo"] = echoTask
 	taskRegistry["send_email"] = tasks.SendEmailTaskV2
 	taskRegistry["http_request"] = tasks.HTTPRequestTask
+	taskRegistry["format_output"] = tasks.FormatOutputTask
 }

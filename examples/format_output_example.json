@@ -1,0 +1,137 @@
+{
+  "name": "Format Output Example",
+  "description": "Demonstrates formatting and printing data from other tasks",
+  "source": "api",
+  "run_immediately": true,
+  "tasks": [
+    {
+      "name": "fetch_user_data",
+      "type": "builtin",
+      "order": 1,
+      "config": {
+        "parameters": {
+          "task_name": "http_request",
+          "url": "https://jsonplaceholder.typicode.com/users/1",
+          "method": "GET"
+        }
+      }
+    },
+    {
+      "name": "fetch_posts_data",
+      "type": "builtin",
+      "order": 1,
+      "config": {
+        "parameters": {
+          "task_name": "http_request",
+          "url": "https://jsonplaceholder.typicode.com/posts/1",
+          "method": "GET"
+        }
+      }
+    },
+    {
+      "name": "format_user_report_text",
+      "type": "builtin",
+      "order": 2,
+      "config": {
+        "depends_on": ["fetch_user_data"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "text",
+          "template": "=== USER REPORT ===\\nGenerated at: ${timestamp}\\n\\nUser Data Received:\\n${fetch_user_data.output}\\n\\nReport ID: ${report_id}\\nStatus: ${status}",
+          "include_timestamp": "true",
+          "timestamp_format": "2006-01-02 15:04:05 MST",
+          "field_report_id": "USR-001",
+          "field_status": "COMPLETED"
+        }
+      }
+    },
+    {
+      "name": "format_data_as_json",
+      "type": "builtin",
+      "order": 2,
+      "config": {
+        "depends_on": ["fetch_posts_data"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "json",
+          "template": "{\"api_response\": \"${fetch_posts_data.output}\", \"processing_info\": {\"processed_by\": \"stratal\", \"job_type\": \"data_fetch\"}}",
+          "include_metadata": "true",
+          "pretty": "true",
+          "field_job_id": "JOB-12345",
+          "field_environment": "production"
+        }
+      }
+    },
+    {
+      "name": "format_summary_table",
+      "type": "builtin",
+      "order": 3,
+      "config": {
+        "depends_on": ["format_user_report_text", "format_data_as_json"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "table",
+          "template": "Task Name | Status | Data Length",
+          "separator": " | ",
+          "include_timestamp": "true",
+          "field_user_task": "COMPLETED",
+          "field_posts_task": "COMPLETED",
+          "field_user_data_length": "1234 chars",
+          "field_posts_data_length": "5678 chars"
+        }
+      }
+    },
+    {
+      "name": "format_csv_export",
+      "type": "builtin",
+      "order": 3,
+      "config": {
+        "depends_on": ["fetch_user_data", "fetch_posts_data"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "csv",
+          "template": "task_name,status,timestamp,data_summary",
+          "delimiter": ",",
+          "include_timestamp": "true",
+          "field_fetch_user_status": "success",
+          "field_fetch_posts_status": "success",
+          "field_user_summary": "User API call completed",
+          "field_posts_summary": "Posts API call completed"
+        }
+      }
+    },
+    {
+      "name": "format_xml_summary",
+      "type": "builtin",
+      "order": 4,
+      "config": {
+        "depends_on": ["format_summary_table"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "xml",
+          "template": "Job execution completed successfully. All tasks finished.",
+          "root_element": "job_summary",
+          "include_timestamp": "true",
+          "field_total_tasks": "6",
+          "field_successful_tasks": "6",
+          "field_failed_tasks": "0"
+        }
+      }
+    },
+    {
+      "name": "final_formatted_report",
+      "type": "builtin",
+      "order": 5,
+      "config": {
+        "depends_on": ["format_xml_summary"],
+        "parameters": {
+          "task_name": "format_output",
+          "format": "text",
+          "template": "\\n🎉 JOB EXECUTION COMPLETE 🎉\\n\\n📊 Summary Table:\\n${format_summary_table.output}\\n\\n📄 CSV Export:\\n${format_csv_export.output}\\n\\n🏷️  XML Summary:\\n${format_xml_summary.output}\\n\\n⏰ Completed at: ${timestamp}",
+          "include_timestamp": "true",
+          "uppercase": "false"
+        }
+      }
+    }
+  ]
+}

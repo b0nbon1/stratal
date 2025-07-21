@@ -97,6 +97,9 @@ func RunCustomScriptWithSecrets(
 	// Add TASK_OUTPUT_ prefix to all task outputs
 	for taskName, output := range taskOutputs {
 		envName := fmt.Sprintf("TASK_OUTPUT_%s", strings.ToUpper(strings.ReplaceAll(taskName, "-", "_")))
+		if _, exists := parameters[envName]; exists {
+			continue
+		}
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", envName, output))
 	}
 
