@@ -7,29 +7,36 @@ import (
 	"syscall"
 
 	"github.com/b0nbon1/stratal/internal/api"
+	"github.com/b0nbon1/stratal/internal/config"
 	"github.com/b0nbon1/stratal/internal/queue"
+	"github.com/b0nbon1/stratal/internal/security"
 	postgres "github.com/b0nbon1/stratal/internal/storage/db"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 )
 
 func main() {
+	cfg := config.Load()
 
-	pool := postgres.InitPgxPool()
+	secretManager, err := security.NewSecretManager(cfg.Security.EncryptionKey)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize secret manager: %v", err))
+	}
+
+	pool := postgres.InitPgxPool(cfg)
 	defer pool.Close()
-
-	q := queue.NewRedisQueue("localhost:6379", "", 0, "job_runs")
-
-	// Now use pool with sqlc or raw queries
 	store := db.NewStore(pool)
 
-	hs := api.NewHTTPServer(":8080", store.(*db.SQLStore), q)
+	q := queue.NewRedisQueue(cfg, "job_runs")
+
+
+	hs := api.NewHTTPServer(cfg.Server.Address(), store.(*db.SQLStore), q, secretManager)
 
 	if err := hs.Start(); err != nil {
 		panic(err)
 	}
 	defer hs.Stop()
 
-	fmt.Println("Server running at http://localhost:8080")
+	fmt.Printf("Server running at http://%s\n", cfg.Server.Address())
 	if err := hs.Server.ListenAndServe(); err != nil {
 		panic(err)
 	}
@@ -38,6 +45,4 @@ func main() {
 	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
 	<-quitChannel
 	fmt.Println("Stopped by signal, exiting gracefully...")
-
-
 }

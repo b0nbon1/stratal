@@ -33,6 +33,17 @@ var languageConfig = map[string]struct {
 
 // RunCustomScriptWithOutputs runs a custom script with environment variables containing outputs from previous tasks
 func RunCustomScriptWithOutputs(ctx context.Context, script *dto.ScriptConfig, outputs map[string]string) (string, error) {
+	return RunCustomScriptWithSecrets(ctx, script, nil, nil, outputs)
+}
+
+// RunCustomScriptWithSecrets runs a custom script with environment variables containing outputs, parameters, and secrets
+func RunCustomScriptWithSecrets(
+	ctx context.Context,
+	script *dto.ScriptConfig,
+	parameters map[string]string,
+	secrets map[string]string,
+	taskOutputs map[string]string,
+) (string, error) {
 	if script == nil {
 		return "", fmt.Errorf("script configuration is nil")
 	}
@@ -70,11 +81,21 @@ func RunCustomScriptWithOutputs(ctx context.Context, script *dto.ScriptConfig, o
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	// Set up environment variables with task outputs
+	// Set up environment variables
 	cmd.Env = os.Environ()
 
-	// Add TASK_OUTPUT_ prefix to all outputs
-	for taskName, output := range outputs {
+	// Add regular parameters as environment variables
+	for key, value := range parameters {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// Add secrets as environment variables
+	for envName, secretValue := range secrets {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", envName, secretValue))
+	}
+
+	// Add TASK_OUTPUT_ prefix to all task outputs
+	for taskName, output := range taskOutputs {
 		envName := fmt.Sprintf("TASK_OUTPUT_%s", strings.ToUpper(strings.ReplaceAll(taskName, "-", "_")))
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", envName, output))
 	}
@@ -98,22 +119,27 @@ func RunCustomScriptWithOutputs(ctx context.Context, script *dto.ScriptConfig, o
 
 	case err := <-done:
 		output := stdout.String()
+		errorOutput := stderr.String()
 
 		if err != nil {
-			// Include stderr in error message
-			errorOutput := stderr.String()
 			if errorOutput != "" {
-				return output, fmt.Errorf("script execution failed: %v\nstderr: %s", err, errorOutput)
+				return "", fmt.Errorf("script execution failed: %s\nError output: %s", err.Error(), errorOutput)
 			}
-			return output, fmt.Errorf("script execution failed: %v", err)
+			return "", fmt.Errorf("script execution failed: %s", err.Error())
 		}
 
-		// If stderr has content but execution succeeded, append it to output
-		if stderrContent := stderr.String(); stderrContent != "" {
-			output += "\n--- stderr ---\n" + stderrContent
+		// If there's error output but the script succeeded, log it but don't fail
+		if errorOutput != "" {
+			fmt.Printf("Script completed with warnings: %s\n", errorOutput)
 		}
 
 		return output, nil
+
+	case <-time.After(5 * time.Minute): // 5 minute timeout
+		if cmd.Process != nil {
+			cmd.Process.Kill()
+		}
+		return "", fmt.Errorf("script execution timed out after 5 minutes")
 	}
 }
 

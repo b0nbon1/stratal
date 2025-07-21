@@ -57,3 +57,29 @@ func (hs *HTTPServer) CreateJobRun(w http.ResponseWriter, r *http.Request) {
 	})
 
 }
+
+func (hs *HTTPServer) GetJobRun(w http.ResponseWriter, r *http.Request) {
+	jobRunID := r.URL.Query().Get("id")
+	if jobRunID == "" {
+		respondError(w, 400, "Job run ID is required as query parameter")
+		return
+	}
+
+	jobRunUUID, err := utils.ParseUUID(jobRunID)
+	if err != nil {
+		respondError(w, 400, "Invalid job run UUID", err.Error())
+		return
+	}
+
+	jobRun, err := hs.store.JobRunsWithTasks(hs.ctx, jobRunUUID)
+	if err != nil {
+		if utils.ContainsSubstring(err.Error(), "no rows") {
+			respondError(w, 404, "Job run not found")
+		} else {
+			respondError(w, 500, "Failed to fetch job run", err.Error())
+		}
+		return
+	}
+
+	respondJSON(w, 200, jobRun)
+}

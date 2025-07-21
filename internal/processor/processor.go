@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/b0nbon1/stratal/internal/security"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
+	"github.com/b0nbon1/stratal/pkg/utils"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -26,7 +29,20 @@ type TaskLevel struct {
 }
 
 func ProcessJob(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, job db.GetJobWithTasksRow) error {
+	return ProcessJobWithSecrets(ctx, store, nil, jobRunID, job)
+}
+
+func ProcessJobWithSecrets(ctx context.Context, store *db.SQLStore, secretManager *security.SecretManager, jobRunID pgtype.UUID, job db.GetJobWithTasksRow) error {
 	fmt.Printf("Processing job run: %s for job: %s\n", jobRunID.String(), job.ID.String())
+
+	// Update job run status to running
+	err := store.UpdateJobRunStatus(ctx, db.UpdateJobRunStatusParams{
+		ID:     jobRunID,
+		Status: utils.ParseText("running"),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update job run status to running: %w", err)
+	}
 
 	// Parse tasks from JSON
 	var tasks []db.Task
@@ -35,62 +51,72 @@ func ProcessJob(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, j
 	}
 
 	if len(tasks) == 0 {
-		fmt.Println("No tasks to process")
-		return nil
+		fmt.Println("No tasks to execute")
+		return completeJobRun(ctx, store, jobRunID, "completed")
 	}
 
-	// Get all task runs for this job run
-	taskRuns, err := store.ListTaskRuns(ctx, jobRunID)
+	// Sort tasks based on dependencies
+	sortedTasks, err := utils.TopoSort(tasks)
 	if err != nil {
-		return fmt.Errorf("failed to list task runs: %w", err)
+		return fmt.Errorf("failed to sort tasks: %w", err)
 	}
 
-	// Create map of task ID to task run for easy lookup
-	taskRunMap := make(map[string]db.ListTaskRunsRow)
-	for _, tr := range taskRuns {
-		taskRunMap[tr.TaskID.String()] = tr
-	}
-
-	// Group tasks by dependency levels
-	taskLevels, err := groupTasksByDependencyLevel(tasks)
-	if err != nil {
-		return fmt.Errorf("failed to group tasks: %w", err)
-	}
-
-	// Store outputs from completed tasks
-	taskOutputs := make(map[string]string)  // taskID -> output
-	taskNameToID := make(map[string]string) // taskName -> taskID for easy lookup
+	// Execute tasks in dependency order
+	taskOutputs := make(map[string]string)
+	taskNameToID := make(map[string]string)
 
 	// Build task name to ID mapping
-	for _, task := range tasks {
+	for _, task := range sortedTasks {
 		taskNameToID[task.Name] = task.ID.String()
 	}
 
-	// Execute tasks level by level
-	for _, level := range taskLevels {
-		fmt.Printf("Executing %d tasks at level %d in parallel\n", len(level.Tasks), level.Level)
+	// For now, use a dummy user ID for secret resolution
+	userID := pgtype.UUID{}
+	userID.Scan("00000000-0000-0000-0000-000000000001")
 
-		// Execute all tasks at this level in parallel
-		results, err := executeTasksInParallel(ctx, store, level.Tasks, taskRunMap, taskOutputs, taskNameToID)
+	for _, task := range sortedTasks {
+		fmt.Printf("Executing task: %s (type: %s)\n", task.Name, task.Type)
+
+		var output string
+		var err error
+
+		if secretManager != nil {
+			output, err = ExecuteTaskWithSecrets(ctx, task, store, secretManager, userID, taskOutputs)
+		} else {
+			output, err = ExecuteTaskWithOutputs(ctx, task, taskOutputs, taskNameToID)
+		}
+
 		if err != nil {
-			return fmt.Errorf("failed to execute tasks at level %d: %w", level.Level, err)
+			fmt.Printf("Task %s failed: %v\n", task.Name, err)
+			// Mark job run as failed
+			failErr := store.UpdateJobRunError(ctx, db.UpdateJobRunErrorParams{
+				ID:           jobRunID,
+				ErrorMessage: utils.ParseText(fmt.Sprintf("Task %s failed: %v", task.Name, err)),
+			})
+			if failErr != nil {
+				fmt.Printf("Failed to update job run error: %v\n", failErr)
+			}
+			return err
 		}
 
-		// Store outputs for next level
-		for _, result := range results {
-			if result.Error == nil && result.Output != "" {
-				taskOutputs[result.TaskID] = result.Output
-			}
-		}
-
-		// Check if any task failed
-		for _, result := range results {
-			if result.Error != nil {
-				return fmt.Errorf("task %s failed at level %d: %w", result.TaskName, level.Level, result.Error)
-			}
-		}
+		// Store task output for subsequent tasks
+		taskOutputs[task.Name] = strings.TrimSpace(output)
+		fmt.Printf("Task %s completed with output: %s\n", task.Name, taskOutputs[task.Name])
 	}
 
+	// Mark job run as completed
+	return completeJobRun(ctx, store, jobRunID, "completed")
+}
+
+func completeJobRun(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, status string) error {
+	err := store.UpdateJobRunStatus(ctx, db.UpdateJobRunStatusParams{
+		ID:     jobRunID,
+		Status: utils.ParseText(status),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update job run status to %s: %w", status, err)
+	}
+	fmt.Printf("Job run %s marked as %s\n", jobRunID.String(), status)
 	return nil
 }
 

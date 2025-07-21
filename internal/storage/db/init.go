@@ -5,22 +5,21 @@ import (
 	"log"
 	"time"
 
+	"github.com/b0nbon1/stratal/internal/config"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func InitPostgres() (conn *pgx.Conn, err error) {
-	conn, err = pgx.Connect(context.Background(), "postgresql://root:1234567890@localhost:5432/stratal?sslmode=disable")
+func InitPostgres(cfg *config.Config) (conn *pgx.Conn, err error) {
+	conn, err = pgx.Connect(context.Background(), cfg.Database.DSN())
 	return
 }
 
-func InitPgxPool() *pgxpool.Pool {
+func InitPgxPool(cfg *config.Config) *pgxpool.Pool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	databaseUrl := "postgresql://root:1234567890@localhost:5432/stratal?sslmode=disable"
-
-	config, err := pgxpool.ParseConfig(databaseUrl)
+	config, err := pgxpool.ParseConfig(cfg.Database.DSN())
 	if err != nil {
 		log.Fatalf("Unable to parse DB config: %v", err)
 	}

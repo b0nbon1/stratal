@@ -7,12 +7,17 @@ import (
 
 	"github.com/b0nbon1/stratal/internal/processor"
 	"github.com/b0nbon1/stratal/internal/queue"
+	"github.com/b0nbon1/stratal/internal/security"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 	"github.com/b0nbon1/stratal/pkg/utils"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
+	StartWorkerWithSecrets(ctx, q, store, nil)
+}
+
+func StartWorkerWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager) {
 	fmt.Println("Starting worker...")
 	for {
 		select {
@@ -21,13 +26,17 @@ func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
 			return
 		default:
 			fmt.Println("Processing next job...")
-			processNextJob(ctx, q, store)
+			processNextJobWithSecrets(ctx, q, store, secretManager)
 			fmt.Println("Job processed")
 		}
 	}
 }
 
 func processNextJob(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
+	processNextJobWithSecrets(ctx, q, store, nil)
+}
+
+func processNextJobWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager) {
 	fmt.Println("Worker polling for jobs...")
 
 	jobRunId, err := q.Dequeue()
@@ -50,7 +59,7 @@ func processNextJob(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) 
 	}
 
 	// Process the job
-	if err := processJobRun(ctx, store, jobRunIdUUID); err != nil {
+	if err := processJobRunWithSecrets(ctx, store, jobRunIdUUID, secretManager); err != nil {
 		fmt.Printf("Error processing job_run %s: %v\n", jobRunId, err)
 		// Job stays in failed state, could implement retry logic here
 		updateJobRunError(ctx, store, jobRunIdUUID, "Failed to process job", err)
@@ -58,6 +67,10 @@ func processNextJob(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) 
 }
 
 func processJobRun(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID) error {
+	return processJobRunWithSecrets(ctx, store, jobRunID, nil)
+}
+
+func processJobRunWithSecrets(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, secretManager *security.SecretManager) error {
 	// Fetch job run
 	jobRun, err := store.GetJobRun(ctx, jobRunID)
 	if err != nil {
@@ -92,46 +105,21 @@ func processJobRun(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID
 		return fmt.Errorf("failed to get job with tasks: %w", err)
 	}
 
-	// Process the job
-	err = processor.ProcessJob(ctx, store, jobRunID, job)
-
-	// Update final status
-	finishTime := pgtype.Timestamp{Time: time.Now(), Valid: true}
-	finalStatus := "completed"
-	var errorMsg pgtype.Text
-
-	if err != nil {
-		finalStatus = "failed"
-		errorMsg = pgtype.Text{String: err.Error(), Valid: true}
-		fmt.Printf("Job run %s failed: %v\n", jobRunID.String(), err)
+	// Process the job using the processor
+	if secretManager != nil {
+		return processor.ProcessJobWithSecrets(ctx, store, secretManager, jobRunID, job)
 	} else {
-		fmt.Printf("Job run %s completed successfully\n", jobRunID.String())
+		return processor.ProcessJob(ctx, store, jobRunID, job)
 	}
-
-	updateErr := store.UpdateJobRun(ctx, db.UpdateJobRunParams{
-		ID:           jobRunID,
-		Status:       pgtype.Text{String: finalStatus, Valid: true},
-		StartedAt:    startTime,
-		FinishedAt:   finishTime,
-		ErrorMessage: errorMsg,
-		TriggeredBy:  jobRun.TriggeredBy,
-		Metadata:     jobRun.Metadata,
-	})
-
-	if updateErr != nil {
-		fmt.Printf("Failed to update final job_run status: %v\n", updateErr)
-	}
-
-	return err
 }
 
 func updateJobRunError(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, message string, err error) {
-	fullError := fmt.Sprintf("%s: %v", message, err)
+	errorMessage := fmt.Sprintf("%s: %v", message, err)
 	updateErr := store.UpdateJobRunError(ctx, db.UpdateJobRunErrorParams{
 		ID:           jobRunID,
-		ErrorMessage: pgtype.Text{String: fullError, Valid: true},
+		ErrorMessage: utils.ParseText(errorMessage),
 	})
 	if updateErr != nil {
-		fmt.Printf("Failed to update job_run error: %v\n", updateErr)
+		fmt.Printf("Failed to update job run error: %v\n", updateErr)
 	}
 }
