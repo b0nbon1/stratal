@@ -19,7 +19,6 @@ func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
 }
 
 func StartWorkerWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager) {
-	// Initialize the logger system
 	logSystem := logger.NewLogger(store, "internal/storage/files/logs")
 	defer logSystem.Close()
 
@@ -37,23 +36,19 @@ func StartWorkerWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQ
 	}
 }
 
-func processNextJob(ctx context.Context, q queue.TaskQueue, store *db.SQLStore) {
-	processNextJobWithSecrets(ctx, q, store, nil, nil)
-}
-
 func processNextJobWithSecrets(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager, logSystem *logger.Logger) {
 	fmt.Println("Worker polling for jobs...")
 
 	jobRunId, err := q.Dequeue()
 	if err != nil {
 		fmt.Printf("Error dequeuing job_run: %v\n", err)
-		time.Sleep(2 * time.Second) // Back off on error
+		time.Sleep(2 * time.Second)
 		return
 	}
 
 	if jobRunId == "" {
 		fmt.Println("No job_run to process")
-		time.Sleep(2 * time.Second) // Back off on error
+		time.Sleep(2 * time.Second)
 		return
 	}
 
@@ -63,22 +58,18 @@ func processNextJobWithSecrets(ctx context.Context, q queue.TaskQueue, store *db
 		return
 	}
 
-	// Get or create a logger for this job run
 	var jobLogger *logger.JobRunLogger
 	if logSystem != nil {
 		jobLogger, err = logSystem.GetJobRunLogger(jobRunId)
 		if err != nil {
 			fmt.Printf("Error creating logger for job_run %s: %v\n", jobRunId, err)
-			// Continue processing even if logger creation fails
 		}
 	}
 
-	// Log job run start
 	if jobLogger != nil {
 		jobLogger.Info(fmt.Sprintf("Starting job run %s", jobRunId))
 	}
 
-	// Process the job
 	if err := processJobRunWithSecrets(ctx, store, jobRunIdUUID, secretManager, jobLogger); err != nil {
 		fmt.Printf("Error processing job_run %s: %v\n", jobRunId, err)
 		if jobLogger != nil {
@@ -92,30 +83,22 @@ func processNextJobWithSecrets(ctx context.Context, q queue.TaskQueue, store *db
 		}
 	}
 
-	// Close the logger for this job run when done
 	if logSystem != nil {
 		logSystem.CloseJobRunLogger(jobRunId)
 	}
 }
 
-func processJobRun(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID) error {
-	return processJobRunWithSecrets(ctx, store, jobRunID, nil, nil)
-}
-
 func processJobRunWithSecrets(ctx context.Context, store *db.SQLStore, jobRunID pgtype.UUID, secretManager *security.SecretManager, jobLogger *logger.JobRunLogger) error {
-	// Fetch job run
 	jobRun, err := store.GetJobRun(ctx, jobRunID)
 	if err != nil {
 		return fmt.Errorf("failed to get job_run: %w", err)
 	}
 
-	// Verify status
 	if jobRun.Status.String != "queued" && jobRun.Status.String != "pending" {
 		return fmt.Errorf("job run %s is not in queued/pending state, current state: %s",
 			jobRunID.String(), jobRun.Status.String)
 	}
 
-	// Update status to running
 	startTime := pgtype.Timestamp{Time: time.Now(), Valid: true}
 	err = store.UpdateJobRun(ctx, db.UpdateJobRunParams{
 		ID:          jobRunID,
@@ -130,14 +113,12 @@ func processJobRunWithSecrets(ctx context.Context, store *db.SQLStore, jobRunID 
 
 	fmt.Printf("Job run %s status updated to running\n", jobRunID.String())
 
-	// Fetch the job with tasks
 	job, err := store.GetJobWithTasks(ctx, jobRun.JobID)
 	if err != nil {
 		updateJobRunError(ctx, store, jobRunID, "Failed to fetch job details", err)
 		return fmt.Errorf("failed to get job with tasks: %w", err)
 	}
 
-	// Process the job using the processor
 	if secretManager != nil {
 		return processor.ProcessJobWithSecrets(ctx, store, secretManager, jobRunID, job, jobLogger)
 	} else {

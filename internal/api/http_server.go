@@ -24,7 +24,7 @@ type HTTPServer struct {
 	cancel        context.CancelFunc
 	queue         queue.TaskQueue
 	secretManager *security.SecretManager
-	logSystem     *logger.Logger // Add logger system
+	logSystem     *logger.Logger
 }
 
 func NewHTTPServer(addr string, store *db.SQLStore, queue queue.TaskQueue, secretManager *security.SecretManager) *HTTPServer {
@@ -37,13 +37,12 @@ func NewHTTPServer(addr string, store *db.SQLStore, queue queue.TaskQueue, secre
 		cancel:        cancel,
 		queue:         queue,
 		secretManager: secretManager,
-		logSystem:     logger.NewLogger(store, "internal/storage/files/logs"), // Initialize logger
+		logSystem:     logger.NewLogger(store, "internal/storage/files/logs"),
 	}
 
 	return s
 }
 
-// GetLogSystem returns the logger system for use by workers
 func (httpServer *HTTPServer) GetLogSystem() *logger.Logger {
 	return httpServer.logSystem
 }
@@ -76,7 +75,6 @@ func (httpServer *HTTPServer) Stop() error {
 		return fmt.Errorf("server not initialized")
 	}
 
-	// Close logger system
 	if httpServer.logSystem != nil {
 		httpServer.logSystem.Close()
 	}

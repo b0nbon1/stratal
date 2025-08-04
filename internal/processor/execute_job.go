@@ -11,9 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// ExecuteTaskWithOutputs executes a task with access to outputs from previous tasks
 func ExecuteTaskWithOutputs(ctx context.Context, task db.Task, outputs map[string]string, taskNameToID map[string]string, jobRunID pgtype.UUID, store *db.SQLStore, jobLogger *logger.JobRunLogger) (string, error) {
-	// Get task run ID for logging
 	taskRun, err := store.GetTaskRunByJobRunAndTaskID(ctx, db.GetTaskRunByJobRunAndTaskIDParams{
 		JobRunID: jobRunID,
 		TaskID:   task.ID,
@@ -33,7 +31,6 @@ func ExecuteTaskWithOutputs(ctx context.Context, task db.Task, outputs map[strin
 
 	switch task.Type {
 	case "builtin":
-		// Builtin tasks already have interpolated parameters from the processor
 		output, err := runner.RunBuiltinTask(ctx, task.Name, task.Config.Parameters, outputs)
 		if err != nil && jobLogger != nil {
 			jobLogger.ErrorWithTaskRun(taskRunID, fmt.Sprintf("Builtin task %s failed: %v", task.Name, err))
@@ -65,9 +62,7 @@ func ExecuteTaskWithOutputs(ctx context.Context, task db.Task, outputs map[strin
 	}
 }
 
-// ExecuteTaskWithSecrets executes a task with access to outputs, parameters, and secrets
 func ExecuteTaskWithSecrets(ctx context.Context, task db.Task, store *db.SQLStore, secretManager *security.SecretManager, userID pgtype.UUID, outputs map[string]string, jobRunID pgtype.UUID, jobLogger *logger.JobRunLogger) (string, error) {
-	// Get task run ID for logging
 	taskRun, err := store.GetTaskRunByJobRunAndTaskID(ctx, db.GetTaskRunByJobRunAndTaskIDParams{
 		JobRunID: jobRunID,
 		TaskID:   task.ID,
@@ -85,7 +80,6 @@ func ExecuteTaskWithSecrets(ctx context.Context, task db.Task, store *db.SQLStor
 		jobLogger.InfoWithTaskRun(taskRunID, fmt.Sprintf("Starting execution of task %s with secrets (type: %s)", task.Name, task.Type))
 	}
 
-	// Use parameter resolver to get resolved parameters and secrets
 	resolver := NewParameterResolver(store, secretManager)
 	resolvedParams, secretEnvVars, err := resolver.ResolveParameters(ctx, task, userID, outputs)
 	if err != nil {
@@ -97,12 +91,10 @@ func ExecuteTaskWithSecrets(ctx context.Context, task db.Task, store *db.SQLStor
 
 	switch task.Type {
 	case "builtin":
-		// For builtin tasks, merge resolved parameters and pass to runner
 		allParams := make(map[string]string)
 		for k, v := range resolvedParams {
 			allParams[k] = v
 		}
-		// Add secrets to parameters for builtin tasks
 		for k, v := range secretEnvVars {
 			allParams[k] = v
 		}
@@ -137,10 +129,3 @@ func ExecuteTaskWithSecrets(ctx context.Context, task db.Task, store *db.SQLStor
 	}
 }
 
-// ExecuteTask maintains backward compatibility
-func ExecuteTask(ctx context.Context, task db.Task, store *db.SQLStore) (string, error) {
-	// For backward compatibility, we need a dummy jobRunID
-	// This should not be used in production - callers should use ExecuteTaskWithOutputs instead
-	dummyJobRunID := pgtype.UUID{}
-	return ExecuteTaskWithOutputs(ctx, task, nil, nil, dummyJobRunID, store, nil)
-}

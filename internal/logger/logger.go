@@ -15,16 +15,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// LogType represents the type of log entry
 type LogType string
 
 const (
-	SystemLogType LogType = "system" // System-level logs (server startup, shutdown, etc.)
-	JobLogType    LogType = "job"    // Job-level logs (job start, completion, errors)
-	TaskLogType   LogType = "task"   // Task-level logs (individual task execution)
+	SystemLogType LogType = "system"
+	JobLogType    LogType = "job" 
+	TaskLogType   LogType = "task"
 )
 
-// LogLevel represents the logging level
 type LogLevel string
 
 const (
@@ -34,7 +32,6 @@ const (
 	DebugLevel LogLevel = "debug"
 )
 
-// LogEntry represents a log entry with enhanced fields for the new logs table
 type LogEntry struct {
 	Type      LogType
 	JobRunID  string
@@ -46,7 +43,6 @@ type LogEntry struct {
 	Metadata  map[string]interface{}
 }
 
-// JobRunLogger handles logging for a specific job run
 type JobRunLogger struct {
 	jobRunID string
 	store    *db.SQLStore
@@ -62,16 +58,14 @@ type Logger struct {
 	loggers     map[string]*JobRunLogger
 	loggersMux  sync.RWMutex
 	baseLogPath string
-	streamer    *LogStreamer // Add streaming support
+	streamer    *LogStreamer
 }
 
-// NewLogger creates a new logger instance
 func NewLogger(store *db.SQLStore, baseLogPath string) *Logger {
 	if baseLogPath == "" {
 		baseLogPath = "internal/storage/files/logs"
 	}
 
-	// Ensure log directory exists
 	if err := os.MkdirAll(baseLogPath, 0755); err != nil {
 		log.Printf("Failed to create log directory: %v", err)
 	}
@@ -80,16 +74,14 @@ func NewLogger(store *db.SQLStore, baseLogPath string) *Logger {
 		store:       store,
 		loggers:     make(map[string]*JobRunLogger),
 		baseLogPath: baseLogPath,
-		streamer:    NewLogStreamer(), // Initialize streaming
+		streamer:    NewLogStreamer(),
 	}
 }
 
-// GetStreamer returns the log streamer for setting up HTTP handlers
 func (l *Logger) GetStreamer() *LogStreamer {
 	return l.streamer
 }
 
-// LogSystem logs a system-level message
 func (l *Logger) LogSystem(level LogLevel, message string, metadata map[string]interface{}) {
 	entry := LogEntry{
 		Type:      SystemLogType,
@@ -100,10 +92,7 @@ func (l *Logger) LogSystem(level LogLevel, message string, metadata map[string]i
 		Metadata:  metadata,
 	}
 
-	// Write to database
 	l.writeSystemLogToDatabase(entry)
-
-	// Broadcast to streaming clients
 	if l.streamer != nil {
 		streamMsg := LogMessage{
 			Type:      string(SystemLogType),
@@ -116,12 +105,9 @@ func (l *Logger) LogSystem(level LogLevel, message string, metadata map[string]i
 		}
 		l.streamer.BroadcastLog(streamMsg)
 	}
-
-	// Console output
 	log.Printf("[SYSTEM] %s: %s", level, message)
 }
 
-// writeSystemLogToDatabase writes a system log to the database
 func (l *Logger) writeSystemLogToDatabase(entry LogEntry) {
 	if l.store == nil {
 		return
@@ -147,7 +133,6 @@ func (l *Logger) writeSystemLogToDatabase(entry LogEntry) {
 	}
 }
 
-// GetJobRunLogger gets or creates a logger for a specific job run
 func (l *Logger) GetJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 	l.loggersMux.Lock()
 	defer l.loggersMux.Unlock()
@@ -156,7 +141,6 @@ func (l *Logger) GetJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 		return logger, nil
 	}
 
-	// Create new job run logger
 	logger, err := l.createJobRunLogger(jobRunID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create job run logger: %w", err)
@@ -166,14 +150,11 @@ func (l *Logger) GetJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 	return logger, nil
 }
 
-// createJobRunLogger creates a new JobRunLogger
 func (l *Logger) createJobRunLogger(jobRunID string) (*JobRunLogger, error) {
-	// Create log file path: {job_run_id}-{date}.txt
 	now := time.Now()
 	filename := fmt.Sprintf("%s-%s.txt", jobRunID, now.Format("2006-01-02"))
 	logFilePath := filepath.Join(l.baseLogPath, filename)
 
-	// Create or open log file
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log file %s: %w", logFilePath, err)
@@ -183,11 +164,10 @@ func (l *Logger) createJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 		jobRunID: jobRunID,
 		store:    l.store,
 		logFile:  logFile,
-		logger:   l, // Set the reference to the main Logger
+		logger:   l,
 	}, nil
 }
 
-// CloseJobRunLogger closes and removes a job run logger
 func (l *Logger) CloseJobRunLogger(jobRunID string) {
 	l.loggersMux.Lock()
 	defer l.loggersMux.Unlock()
@@ -198,7 +178,6 @@ func (l *Logger) CloseJobRunLogger(jobRunID string) {
 	}
 }
 
-// Close closes all job run loggers
 func (l *Logger) Close() {
 	l.loggersMux.Lock()
 	defer l.loggersMux.Unlock()
@@ -209,17 +188,14 @@ func (l *Logger) Close() {
 	}
 }
 
-// Job-level logging methods
 func (jrl *JobRunLogger) LogJob(level LogLevel, message string, metadata map[string]interface{}) {
 	jrl.logEntry(JobLogType, "", level, message, "system", metadata)
 }
 
-// Task-level logging methods
 func (jrl *JobRunLogger) LogTask(taskRunID string, level LogLevel, message string, stream string, metadata map[string]interface{}) {
 	jrl.logEntry(TaskLogType, taskRunID, level, message, stream, metadata)
 }
 
-// Convenience methods for different log levels
 func (jrl *JobRunLogger) Info(message string) {
 	jrl.LogJob(InfoLevel, message, nil)
 }
@@ -236,7 +212,6 @@ func (jrl *JobRunLogger) Debug(message string) {
 	jrl.LogJob(DebugLevel, message, nil)
 }
 
-// Task-specific logging methods
 func (jrl *JobRunLogger) InfoWithTaskRun(taskRunID string, message string) {
 	jrl.LogTask(taskRunID, InfoLevel, message, "stdout", nil)
 }
@@ -245,7 +220,6 @@ func (jrl *JobRunLogger) ErrorWithTaskRun(taskRunID string, message string) {
 	jrl.LogTask(taskRunID, ErrorLevel, message, "stderr", nil)
 }
 
-// logEntry is the core logging method
 func (jrl *JobRunLogger) logEntry(logType LogType, taskRunID string, level LogLevel, message string, stream string, metadata map[string]interface{}) {
 	entry := LogEntry{
 		Type:      logType,
@@ -258,13 +232,10 @@ func (jrl *JobRunLogger) logEntry(logType LogType, taskRunID string, level LogLe
 		Metadata:  metadata,
 	}
 
-	// Write to file
 	jrl.writeToFile(entry)
 
-	// Write to database
 	jrl.writeToDatabase(entry)
 
-	// Broadcast to streaming clients if streamer is available
 	if jrl.logger != nil && jrl.logger.streamer != nil {
 		streamMsg := LogMessage{
 			Type:      string(logType),
@@ -280,7 +251,6 @@ func (jrl *JobRunLogger) logEntry(logType LogType, taskRunID string, level LogLe
 	}
 }
 
-// writeToFile writes log entry to file
 func (jrl *JobRunLogger) writeToFile(entry LogEntry) {
 	jrl.fileMux.Lock()
 	defer jrl.fileMux.Unlock()
@@ -301,7 +271,6 @@ func (jrl *JobRunLogger) writeToFile(entry LogEntry) {
 	}
 }
 
-// writeToDatabase writes log entry to database
 func (jrl *JobRunLogger) writeToDatabase(entry LogEntry) {
 	jrl.dbMux.Lock()
 	defer jrl.dbMux.Unlock()
@@ -320,7 +289,6 @@ func (jrl *JobRunLogger) writeToDatabase(entry LogEntry) {
 
 	var jobRunUUID, taskRunUUID pgtype.UUID
 
-	// Parse job run ID
 	if entry.JobRunID != "" {
 		if err := jobRunUUID.Scan(entry.JobRunID); err != nil {
 			log.Printf("Failed to parse job run ID %s: %v", entry.JobRunID, err)
@@ -328,7 +296,6 @@ func (jrl *JobRunLogger) writeToDatabase(entry LogEntry) {
 		}
 	}
 
-	// Parse task run ID if provided
 	if entry.TaskRunID != "" {
 		if err := taskRunUUID.Scan(entry.TaskRunID); err != nil {
 			log.Printf("Failed to parse task run ID %s: %v", entry.TaskRunID, err)
@@ -336,7 +303,6 @@ func (jrl *JobRunLogger) writeToDatabase(entry LogEntry) {
 		}
 	}
 
-	// Choose the appropriate database method based on log type
 	switch entry.Type {
 	case JobLogType:
 		err := jrl.store.CreateJobLog(ctx, db.CreateJobLogParams{
@@ -364,7 +330,6 @@ func (jrl *JobRunLogger) writeToDatabase(entry LogEntry) {
 		}
 
 	default:
-		// Generic log creation
 		err := jrl.store.CreateLog(ctx, db.CreateLogParams{
 			Type:      string(entry.Type),
 			JobRunID:  jobRunUUID,
@@ -381,7 +346,6 @@ func (jrl *JobRunLogger) writeToDatabase(entry LogEntry) {
 	}
 }
 
-// GetWriter returns an io.Writer for the specified stream
 func (jrl *JobRunLogger) GetWriter(stream string) io.Writer {
 	return &logWriter{
 		logger: jrl,
@@ -389,7 +353,6 @@ func (jrl *JobRunLogger) GetWriter(stream string) io.Writer {
 	}
 }
 
-// GetWriterForTaskRun returns an io.Writer for a specific task run and stream
 func (jrl *JobRunLogger) GetWriterForTaskRun(taskRunID, stream string) io.Writer {
 	return &taskLogWriter{
 		logger:    jrl,
@@ -398,7 +361,6 @@ func (jrl *JobRunLogger) GetWriterForTaskRun(taskRunID, stream string) io.Writer
 	}
 }
 
-// Close closes the job run logger
 func (jrl *JobRunLogger) Close() {
 	jrl.fileMux.Lock()
 	defer jrl.fileMux.Unlock()
@@ -409,7 +371,6 @@ func (jrl *JobRunLogger) Close() {
 	}
 }
 
-// logWriter implements io.Writer for general logging
 type logWriter struct {
 	logger *JobRunLogger
 	stream string
@@ -425,7 +386,6 @@ func (w *logWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// taskLogWriter implements io.Writer for task-specific logging
 type taskLogWriter struct {
 	logger    *JobRunLogger
 	stream    string
@@ -442,7 +402,6 @@ func (w *taskLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// parseUUID parses a string UUID into pgtype.UUID
 func parseUUID(uuidStr string) (pgtype.UUID, error) {
 	var uuid pgtype.UUID
 	err := uuid.Scan(uuidStr)

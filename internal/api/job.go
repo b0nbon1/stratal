@@ -25,7 +25,7 @@ type JobBodyParams struct {
 	Source         string        `json:"source"`
 	RawPayload     []byte        `json:"raw_payload"`
 	Tasks          []TaskJobBody `json:"tasks"`
-	RunImmediately bool          `json:"run_immediately"` // Optional: create and queue a job run
+	RunImmediately bool          `json:"run_immediately"`
 }
 
 func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,6 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// execute the transaction to create the jobs and also tasks, if fails rollback everything
 	data, err := hs.store.CreateJobWithTasksTx(hs.ctx, jobParam, taskParams)
 	if err != nil {
 		respondJSON(w, 500, map[string]interface{}{
@@ -88,18 +87,14 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 
 	// If requested, create and queue a job run immediately
 	if reqBodyJob.RunImmediately && data.Job != nil {
-		// Create job run
 		jobRunData, err := hs.store.CreateJobRunTx(hs.ctx, data.Job.ID, "api")
 		if err != nil {
-			// Don't fail the whole request, just add warning
 			response["warning"] = fmt.Sprintf("Job created but failed to create job run: %v", err)
 		} else {
-			// Queue the job run
 			err = hs.queue.Enqueue(jobRunData.JobRunId)
 			if err != nil {
 				response["warning"] = fmt.Sprintf("Job and job run created but failed to queue: %v", err)
 			} else {
-				// Update job run status to queued
 				jobRunID, _ := utils.ParseUUID(jobRunData.JobRunId)
 				err = hs.store.UpdateJobRunStatus(hs.ctx, db.UpdateJobRunStatusParams{
 					ID:     jobRunID,
@@ -118,9 +113,7 @@ func (hs *HTTPServer) CreateJob(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, 201, response)
 }
 
-// GetJob retrieves a specific job by ID from URL path parameter
 func (hs *HTTPServer) GetJob(w http.ResponseWriter, r *http.Request) {
-	// Extract job ID from URL path parameter (e.g., /jobs/:id)
 	jobID := router.GetParam(r, "id")
 	if jobID == "" {
 		respondError(w, 400, "Job ID is required in URL path")
@@ -146,15 +139,12 @@ func (hs *HTTPServer) GetJob(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, 200, job)
 }
 
-// ListJobs retrieves a list of jobs with pagination or a specific job by ID
 func (hs *HTTPServer) ListJobs(w http.ResponseWriter, r *http.Request) {
-	// Check if this is a request for a specific job
 	if jobID := r.URL.Query().Get("id"); jobID != "" {
 		hs.GetJob(w, r)
 		return
 	}
 
-	// Parse pagination parameters
 	limit := 20
 	offset := 0
 

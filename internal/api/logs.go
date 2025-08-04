@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/b0nbon1/stratal/internal/logger"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
@@ -10,13 +11,11 @@ import (
 	"github.com/b0nbon1/stratal/pkg/utils"
 )
 
-// LogsHandler handles log-related HTTP requests
 type LogsHandler struct {
 	store    *db.SQLStore
 	streamer *logger.LogStreamer
 }
 
-// NewLogsHandler creates a new logs handler
 func NewLogsHandler(store *db.SQLStore, streamer *logger.LogStreamer) *LogsHandler {
 	return &LogsHandler{
 		store:    store,
@@ -24,32 +23,26 @@ func NewLogsHandler(store *db.SQLStore, streamer *logger.LogStreamer) *LogsHandl
 	}
 }
 
-// RegisterLogRoutes registers log-related routes
 func (h *LogsHandler) RegisterLogRoutes(v1 *router.Router) {
-	// Streaming endpoints
-	v1.Get("/logs/stream/ws", h.HandleWebSocketStream)  // WebSocket streaming
-	v1.Get("/logs/stream/sse", h.HandleSSEStream)       // Server-Sent Events streaming
-	v1.Get("/logs/stream/status", h.GetStreamingStatus) // Get streaming connection status
+	v1.Get("/logs/stream/ws", h.HandleWebSocketStream)
+	v1.Get("/logs/stream/sse", h.HandleSSEStream)
+	v1.Get("/logs/stream/status", h.GetStreamingStatus)
 
-	// REST API endpoints
-	v1.Get("/logs/job-runs/:job_run_id", h.GetJobRunLogs)               // Get all logs for a job run
-	v1.Get("/logs/task-runs/:task_run_id", h.GetTaskRunLogs)            // Get logs for a specific task run
-	v1.Get("/logs/job-runs/:job_run_id/download", h.DownloadJobRunLogs) // Download log file
-	v1.Get("/logs/system", h.GetSystemLogs)                             // Get system logs
-	v1.Get("/logs/type/:type", h.GetLogsByType)                         // Get logs by type (system, job, task)
+	v1.Get("/logs/job-runs/:job_run_id", h.GetJobRunLogs)
+	v1.Get("/logs/task-runs/:task_run_id", h.GetTaskRunLogs)
+	v1.Get("/logs/job-runs/:job_run_id/download", h.DownloadJobRunLogs)
+	v1.Get("/logs/system", h.GetSystemLogs)
+	v1.Get("/logs/type/:type", h.GetLogsByType)
 }
 
-// HandleWebSocketStream handles WebSocket log streaming
 func (h *LogsHandler) HandleWebSocketStream(w http.ResponseWriter, r *http.Request) {
 	h.streamer.HandleWebSocket(w, r)
 }
 
-// HandleSSEStream handles Server-Sent Events log streaming
 func (h *LogsHandler) HandleSSEStream(w http.ResponseWriter, r *http.Request) {
 	h.streamer.HandleSSE(w, r)
 }
 
-// GetStreamingStatus returns the current streaming connection status
 func (h *LogsHandler) GetStreamingStatus(w http.ResponseWriter, r *http.Request) {
 	status := h.streamer.GetActiveConnections()
 	respondJSON(w, 200, map[string]interface{}{
@@ -58,7 +51,6 @@ func (h *LogsHandler) GetStreamingStatus(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// GetJobRunLogs retrieves all logs for a specific job run
 func (h *LogsHandler) GetJobRunLogs(w http.ResponseWriter, r *http.Request) {
 	jobRunIDStr := r.PathValue("job_run_id")
 	if jobRunIDStr == "" {
@@ -72,7 +64,6 @@ func (h *LogsHandler) GetJobRunLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get pagination parameters
 	limit, offset := getPaginationParams(r)
 
 	logs, err := h.store.ListLogsByJobRunPaginated(r.Context(), db.ListLogsByJobRunPaginatedParams{
@@ -85,10 +76,8 @@ func (h *LogsHandler) GetJobRunLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get total count for pagination
-	totalCount := len(logs) // This is approximate since we're using LIMIT/OFFSET
+	totalCount := len(logs)
 	if len(logs) == limit {
-		// There might be more logs, but we don't have exact count
 		totalCount = offset + limit + 1
 	} else {
 		totalCount = offset + len(logs)
@@ -105,7 +94,6 @@ func (h *LogsHandler) GetJobRunLogs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetTaskRunLogs retrieves logs for a specific task run
 func (h *LogsHandler) GetTaskRunLogs(w http.ResponseWriter, r *http.Request) {
 	taskRunIDStr := r.PathValue("task_run_id")
 	if taskRunIDStr == "" {
@@ -130,7 +118,6 @@ func (h *LogsHandler) GetTaskRunLogs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetSystemLogs retrieves system logs
 func (h *LogsHandler) GetSystemLogs(w http.ResponseWriter, r *http.Request) {
 	limit, offset := getPaginationParams(r)
 
@@ -153,7 +140,6 @@ func (h *LogsHandler) GetSystemLogs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetLogsByType retrieves logs by type (system, job, task)
 func (h *LogsHandler) GetLogsByType(w http.ResponseWriter, r *http.Request) {
 	logType := r.PathValue("type")
 	if logType == "" {
@@ -161,7 +147,6 @@ func (h *LogsHandler) GetLogsByType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate log type
 	if logType != "system" && logType != "job" && logType != "task" {
 		respondJSON(w, 400, map[string]string{"error": "Invalid log type. Must be 'system', 'job', or 'task'"})
 		return
@@ -189,7 +174,6 @@ func (h *LogsHandler) GetLogsByType(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// DownloadJobRunLogs allows downloading the log file for a job run
 func (h *LogsHandler) DownloadJobRunLogs(w http.ResponseWriter, r *http.Request) {
 	jobRunIDStr := r.PathValue("job_run_id")
 	if jobRunIDStr == "" {
@@ -197,24 +181,20 @@ func (h *LogsHandler) DownloadJobRunLogs(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Validate UUID format
 	_, err := utils.ParseUUID(jobRunIDStr)
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": "Invalid job_run_id format"})
 		return
 	}
 
-	// Get the date parameter (optional, defaults to today)
 	dateStr := r.URL.Query().Get("date")
 	if dateStr == "" {
 		dateStr = r.URL.Query().Get("date")
 	}
 	if dateStr == "" {
-		// Default to today's date
-		dateStr = "2024-01-15" // You might want to use time.Now().Format("2006-01-02")
+		dateStr = time.Now().Format("2006-01-02")
 	}
 
-	// Construct file path
 	logFilePath := h.constructLogFilePath(jobRunIDStr, dateStr)
 
 	// Set headers for file download
@@ -236,13 +216,13 @@ func getPaginationParams(r *http.Request) (limit, offset int) {
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
 
-	limit = 100 // default limit
-	offset = 0  // default offset
+	limit = 100
+	offset = 0
 
 	if limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
 			limit = parsedLimit
-			if limit > 1000 { // max limit
+			if limit > 1000 {
 				limit = 1000
 			}
 		}

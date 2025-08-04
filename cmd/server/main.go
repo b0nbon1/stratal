@@ -12,6 +12,7 @@ import (
 	"github.com/b0nbon1/stratal/internal/security"
 	postgres "github.com/b0nbon1/stratal/internal/storage/db"
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
+	_ "net/http/pprof"
 )
 
 func main() {

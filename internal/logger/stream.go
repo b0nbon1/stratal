@@ -24,17 +24,13 @@ type LogMessage struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// LogStreamer manages real-time log streaming to clients
 type LogStreamer struct {
-	// WebSocket connections for each job run
 	wsConnections map[string]map[*websocket.Conn]bool
 	wsLock        sync.RWMutex
 
-	// SSE connections for each job run
 	sseConnections map[string]map[chan LogMessage]bool
 	sseLock        sync.RWMutex
 
-	// Global connections (all job runs)
 	globalWSConnections  map[*websocket.Conn]bool
 	globalSSEConnections map[chan LogMessage]bool
 	globalLock           sync.RWMutex
@@ -42,7 +38,6 @@ type LogStreamer struct {
 	upgrader websocket.Upgrader
 }
 
-// NewLogStreamer creates a new log streamer
 func NewLogStreamer() *LogStreamer {
 	return &LogStreamer{
 		wsConnections:        make(map[string]map[*websocket.Conn]bool),
@@ -51,25 +46,18 @@ func NewLogStreamer() *LogStreamer {
 		globalSSEConnections: make(map[chan LogMessage]bool),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
-				// In production, implement proper CORS validation
 				return true
 			},
 		},
 	}
 }
 
-// BroadcastLog sends a log message to all connected clients
 func (ls *LogStreamer) BroadcastLog(logMsg LogMessage) {
-	// Broadcast to job-specific connections
 	ls.broadcastToJobConnections(logMsg.JobRunID, logMsg)
-
-	// Broadcast to global connections
 	ls.broadcastToGlobalConnections(logMsg)
 }
 
-// broadcastToJobConnections sends log to job-specific connections
 func (ls *LogStreamer) broadcastToJobConnections(jobRunID string, logMsg LogMessage) {
-	// WebSocket connections
 	ls.wsLock.RLock()
 	if connections, exists := ls.wsConnections[jobRunID]; exists {
 		for conn := range connections {
@@ -81,15 +69,12 @@ func (ls *LogStreamer) broadcastToJobConnections(jobRunID string, logMsg LogMess
 		}
 	}
 	ls.wsLock.RUnlock()
-
-	// SSE connections
 	ls.sseLock.RLock()
 	if connections, exists := ls.sseConnections[jobRunID]; exists {
 		for ch := range connections {
 			select {
 			case ch <- logMsg:
 			default:
-				// Channel is full, remove it
 				close(ch)
 				delete(connections, ch)
 			}
@@ -98,12 +83,10 @@ func (ls *LogStreamer) broadcastToJobConnections(jobRunID string, logMsg LogMess
 	ls.sseLock.RUnlock()
 }
 
-// broadcastToGlobalConnections sends log to global connections
 func (ls *LogStreamer) broadcastToGlobalConnections(logMsg LogMessage) {
 	ls.globalLock.RLock()
 	defer ls.globalLock.RUnlock()
 
-	// Global WebSocket connections
 	for conn := range ls.globalWSConnections {
 		if err := conn.WriteJSON(logMsg); err != nil {
 			log.Printf("Failed to write to global websocket: %v", err)
@@ -112,19 +95,16 @@ func (ls *LogStreamer) broadcastToGlobalConnections(logMsg LogMessage) {
 		}
 	}
 
-	// Global SSE connections
 	for ch := range ls.globalSSEConnections {
 		select {
 		case ch <- logMsg:
 		default:
-			// Channel is full, remove it
 			close(ch)
 			delete(ls.globalSSEConnections, ch)
 		}
 	}
 }
 
-// HandleWebSocket handles WebSocket connections for log streaming
 func (ls *LogStreamer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := ls.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -133,20 +113,16 @@ func (ls *LogStreamer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// Get job run ID from query parameter
 	jobRunID := r.URL.Query().Get("job_run_id")
 
 	if jobRunID != "" {
-		// Job-specific connection
 		ls.addJobWSConnection(jobRunID, conn)
 		defer ls.removeJobWSConnection(jobRunID, conn)
 	} else {
-		// Global connection (all jobs)
 		ls.addGlobalWSConnection(conn)
 		defer ls.removeGlobalWSConnection(conn)
 	}
 
-	// Send initial connection confirmation
 	confirmMsg := LogMessage{
 		JobRunID:  jobRunID,
 		Timestamp: time.Now(),
@@ -160,7 +136,6 @@ func (ls *LogStreamer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Keep connection alive and handle client messages
 	for {
 		var msg map[string]interface{}
 		if err := conn.ReadJSON(&msg); err != nil {
@@ -169,35 +144,26 @@ func (ls *LogStreamer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 			break
 		}
-		// Handle any client messages if needed (ping/pong, etc.)
 	}
 }
 
-// HandleSSE handles Server-Sent Events for log streaming
 func (ls *LogStreamer) HandleSSE(w http.ResponseWriter, r *http.Request) {
-	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	// Create a channel for this connection
 	logChan := make(chan LogMessage, 100)
 
-	// Get job run ID from query parameter
 	jobRunID := r.URL.Query().Get("job_run_id")
 
 	if jobRunID != "" {
-		// Job-specific connection
 		ls.addJobSSEConnection(jobRunID, logChan)
 		defer ls.removeJobSSEConnection(jobRunID, logChan)
 	} else {
-		// Global connection
 		ls.addGlobalSSEConnection(logChan)
 		defer ls.removeGlobalSSEConnection(logChan)
 	}
-
-	// Send initial connection event
 	fmt.Fprintf(w, "event: connected\n")
 	fmt.Fprintf(w, "data: {\"message\":\"Connected to log stream\",\"job_run_id\":\"%s\"}\n\n", jobRunID)
 
@@ -205,7 +171,6 @@ func (ls *LogStreamer) HandleSSE(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 
-	// Stream logs
 	ctx := r.Context()
 	for {
 		select {
@@ -225,7 +190,6 @@ func (ls *LogStreamer) HandleSSE(w http.ResponseWriter, r *http.Request) {
 				f.Flush()
 			}
 		case <-time.After(30 * time.Second):
-			// Send keep-alive ping
 			fmt.Fprintf(w, "event: ping\n")
 			fmt.Fprintf(w, "data: {\"timestamp\":\"%s\"}\n\n", time.Now().Format(time.RFC3339))
 
@@ -236,7 +200,6 @@ func (ls *LogStreamer) HandleSSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Connection management methods
 func (ls *LogStreamer) addJobWSConnection(jobRunID string, conn *websocket.Conn) {
 	ls.wsLock.Lock()
 	defer ls.wsLock.Unlock()
@@ -307,7 +270,6 @@ func (ls *LogStreamer) removeGlobalSSEConnection(ch chan LogMessage) {
 	close(ch)
 }
 
-// GetActiveConnections returns the number of active connections
 func (ls *LogStreamer) GetActiveConnections() map[string]interface{} {
 	ls.wsLock.RLock()
 	ls.sseLock.RLock()
@@ -318,7 +280,6 @@ func (ls *LogStreamer) GetActiveConnections() map[string]interface{} {
 
 	jobConnections := make(map[string]map[string]int)
 
-	// Count job-specific connections
 	for jobRunID, wsConns := range ls.wsConnections {
 		if jobConnections[jobRunID] == nil {
 			jobConnections[jobRunID] = make(map[string]int)

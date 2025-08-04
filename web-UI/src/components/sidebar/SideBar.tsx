@@ -1,12 +1,5 @@
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import ListAltIcon from "@mui/icons-material/ListAlt";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import EventAvailableIcon from "@mui/icons-material/EventAvailable";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import QueryBuilderIcon from "@mui/icons-material/QueryBuilder";
-import LogoutIcon from "@mui/icons-material/Logout";
-
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Drawer,
   List as MUIList,
@@ -18,42 +11,53 @@ import {
   Typography,
   Box,
   Button,
-} from "@mui/material";
+} from '@mui/material';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import WorkIcon from '@mui/icons-material/Work';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import DescriptionIcon from '@mui/icons-material/Description';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const navigationItems = [
   {
-    title: "Dashboard",
-    url: "#dashboard",
+    title: 'Dashboard',
+    path: '/dashboard',
     icon: <DashboardIcon fontSize="small" />,
   },
   {
-    title: "Tasks",
-    url: "#tasks",
-    icon: <ListAltIcon fontSize="small" />,
+    title: 'Jobs',
+    path: '/jobs',
+    icon: <WorkIcon fontSize="small" />,
   },
   {
-    title: "Completed",
-    url: "#completed",
-    icon: <CheckCircleIcon fontSize="small" />,
+    title: 'Job Runs',
+    path: '/job-runs',
+    icon: <PlayArrowIcon fontSize="small" />,
   },
   {
-    title: "Failed",
-    url: "#failed",
-    icon: <CancelIcon fontSize="small" />,
-  },
-  {
-    title: "Scheduled",
-    url: "#scheduled",
-    icon: <EventAvailableIcon fontSize="small" />,
-  },
-  {
-    title: "Create Task",
-    url: "#create",
+    title: 'Create Job',
+    path: '/jobs/create',
     icon: <AddCircleIcon fontSize="small" />,
+  },
+  {
+    title: 'Secrets',
+    path: '/secrets',
+    icon: <VpnKeyIcon fontSize="small" />,
+  },
+  {
+    title: 'Logs',
+    path: '/logs',
+    icon: <DescriptionIcon fontSize="small" />,
   },
 ];
 
 export function AppSidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   return (
     <Drawer
       variant="permanent"
@@ -61,12 +65,12 @@ export function AppSidebar() {
       sx={{
         width: 240,
         flexShrink: 0,
-        "& .MuiDrawer-paper": {
+        '& .MuiDrawer-paper': {
           width: 240,
-          boxSizing: "border-box",
-          borderRight: "1px solid #e0e0e0",
-          display: "flex",
-          flexDirection: "column",
+          boxSizing: 'border-box',
+          borderRight: '1px solid #e0e0e0',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
@@ -80,18 +84,18 @@ export function AppSidebar() {
           justifyContent="center"
           borderRadius={1}
           sx={{
-            background: "linear-gradient(to bottom right, #3b82f6, #8b5cf6)",
+            background: 'linear-gradient(to bottom right, #3b82f6, #8b5cf6)',
           }}
         >
-          <DashboardIcon style={{ color: "white", fontSize: 16 }} />
+          <DashboardIcon style={{ color: 'white', fontSize: 16 }} />
         </Box>
         <Typography
           variant="h6"
           fontWeight="bold"
           sx={{
-            background: "linear-gradient(to right, #2563eb, #7c3aed)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
+            background: 'linear-gradient(to right, #2563eb, #7c3aed)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
           }}
         >
           Stratal
@@ -108,7 +112,18 @@ export function AppSidebar() {
       <MUIList>
         {navigationItems.map((item) => (
           <ListItem key={item.title} disablePadding>
-            <ListItemButton component="a" href={item.url}>
+            <ListItemButton
+              onClick={() => navigate(item.path)}
+              selected={location.pathname === item.path}
+              sx={{
+                '&.Mui-selected': {
+                  backgroundColor: '#f3f4f6',
+                  '&:hover': {
+                    backgroundColor: '#e5e7eb',
+                  },
+                },
+              }}
+            >
               <ListItemIcon sx={{ minWidth: 32 }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.title} />
             </ListItemButton>
@@ -124,7 +139,7 @@ export function AppSidebar() {
           variant="text"
           startIcon={<LogoutIcon />}
           onClick={() => {
-            console.log("Logging out...");
+            console.log('Logging out...');
           }}
         >
           Logout

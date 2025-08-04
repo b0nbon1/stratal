@@ -23,7 +23,6 @@ func NewParameterResolver(store *db.SQLStore, secretManager *security.SecretMana
 	}
 }
 
-// ResolveParameters resolves task parameters, including secrets and task outputs
 func (pr *ParameterResolver) ResolveParameters(
 	ctx context.Context,
 	task db.Task,
