@@ -31,6 +31,7 @@ type JobRun struct {
 	Metadata     []byte             `json:"metadata"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	PausedAt     pgtype.Timestamp   `json:"paused_at"`
 }
 
 type Log struct {
@@ -78,6 +79,7 @@ type TaskRun struct {
 	ErrorMessage pgtype.Text        `json:"error_message"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	PausedAt     pgtype.Timestamp   `json:"paused_at"`
 }
 
 type User struct {

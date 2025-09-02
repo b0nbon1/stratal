@@ -38,7 +38,7 @@ func main() {
 
 	go scheduler.StartScheduler(q, store.(*db.SQLStore), ctx)
 
-	go worker.StartWorkerWithSecrets(ctx, q, store.(*db.SQLStore), secretManager)
+	go worker.StartWorker(ctx, q, store.(*db.SQLStore), secretManager)
 	fmt.Println("Worker started successfully")
 
 	quitChannel := make(chan os.Signal, 1)

@@ -35,8 +35,10 @@ type Querier interface {
 	DeleteTaskRun(ctx context.Context, id pgtype.UUID) error
 	GetJob(ctx context.Context, id pgtype.UUID) (GetJobRow, error)
 	GetJobRun(ctx context.Context, id pgtype.UUID) (GetJobRunRow, error)
+	GetJobRunWithPauseInfo(ctx context.Context, id pgtype.UUID) (GetJobRunWithPauseInfoRow, error)
 	GetJobWithTasks(ctx context.Context, id pgtype.UUID) (GetJobWithTasksRow, error)
 	GetLog(ctx context.Context, id int64) (Log, error)
+	GetPausedJobRuns(ctx context.Context) ([]JobRun, error)
 	GetSecret(ctx context.Context, arg GetSecretParams) (GetSecretRow, error)
 	GetSecretByName(ctx context.Context, arg GetSecretByNameParams) (GetSecretByNameRow, error)
 	GetTask(ctx context.Context, id pgtype.UUID) (GetTaskRow, error)
@@ -59,6 +61,10 @@ type Querier interface {
 	ListTaskRuns(ctx context.Context, jobRunID pgtype.UUID) ([]ListTaskRunsRow, error)
 	ListTaskRunsByJob(ctx context.Context, id pgtype.UUID) ([]ListTaskRunsByJobRow, error)
 	ListTasks(ctx context.Context, jobID pgtype.UUID) ([]ListTasksRow, error)
+	PauseJobRun(ctx context.Context, id pgtype.UUID) error
+	PauseTaskRun(ctx context.Context, id pgtype.UUID) error
+	ResumeJobRun(ctx context.Context, id pgtype.UUID) error
+	ResumeTaskRun(ctx context.Context, id pgtype.UUID) error
 	UpdateJob(ctx context.Context, arg UpdateJobParams) error
 	UpdateJobRun(ctx context.Context, arg UpdateJobRunParams) error
 	UpdateJobRunError(ctx context.Context, arg UpdateJobRunErrorParams) error

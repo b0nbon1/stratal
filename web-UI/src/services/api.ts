@@ -43,6 +43,7 @@ export interface JobRun {
   updated_at: string;
   started_at?: string;
   completed_at?: string;
+  paused_at?: string;
   task_runs?: TaskRun[];
 }
 
@@ -138,6 +139,24 @@ export const jobRunsApi = {
   // List job runs
   list: async (params?: { limit?: number; offset?: number }): Promise<{ job_runs: JobRun[]; limit: number; offset: number; count: number }> => {
     const response = await api.get('/job-runs', { params });
+    return response.data;
+  },
+
+  // Pause a job run
+  pause: async (id: string): Promise<{ message: string; job_run_id: string; job_name: string; previous_status: string; new_status: string }> => {
+    const response = await api.post(`/job-runs/${id}/pause`);
+    return response.data;
+  },
+
+  // Resume a job run
+  resume: async (id: string): Promise<{ message: string; job_run_id: string; job_name: string; previous_status: string; new_status: string }> => {
+    const response = await api.post(`/job-runs/${id}/resume`);
+    return response.data;
+  },
+
+  // Get paused job runs
+  getPaused: async (): Promise<{ paused_job_runs: JobRun[]; count: number }> => {
+    const response = await api.get('/job-runs/paused');
     return response.data;
   },
 };

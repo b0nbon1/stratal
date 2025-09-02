@@ -14,10 +14,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DescriptionIcon from '@mui/icons-material/Description';
+import PauseIcon from '@mui/icons-material/Pause';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { jobRunsApi, JobRun } from '../services/api';
 
 export function JobRunDetails() {
@@ -25,6 +29,8 @@ export function JobRunDetails() {
   const navigate = useNavigate();
   const [jobRun, setJobRun] = useState<JobRun | null>(null);
   const [loading, setLoading] = useState(true);
+  const [controlLoading, setControlLoading] = useState(false);
+  const [controlError, setControlError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -44,6 +50,38 @@ export function JobRunDetails() {
     }
   };
 
+  const handlePause = async () => {
+    if (!jobRun) return;
+    setControlLoading(true);
+    setControlError(null);
+    try {
+      const response = await jobRunsApi.pause(jobRun.id);
+      setJobRun(prev => prev ? { ...prev, status: 'paused' } : null);
+      console.log('Job paused:', response.message);
+    } catch (err: any) {
+      setControlError(err.response?.data?.error || 'Failed to pause job run');
+      console.error('Error pausing job run:', err);
+    } finally {
+      setControlLoading(false);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!jobRun) return;
+    setControlLoading(true);
+    setControlError(null);
+    try {
+      const response = await jobRunsApi.resume(jobRun.id);
+      setJobRun(prev => prev ? { ...prev, status: response.new_status } : null);
+      console.log('Job resumed:', response.message);
+    } catch (err: any) {
+      setControlError(err.response?.data?.error || 'Failed to resume job run');
+      console.error('Error resuming job run:', err);
+    } finally {
+      setControlLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -54,10 +92,15 @@ export function JobRunDetails() {
         return 'primary';
       case 'queued':
         return 'warning';
+      case 'paused':
+        return 'warning';
       default:
         return 'default';
     }
   };
+
+  const canPause = jobRun?.status === 'running' || jobRun?.status === 'queued';
+  const canResume = jobRun?.status === 'paused';
 
   const getDuration = (startTime?: string, endTime?: string) => {
     if (!startTime) return 'Not started';
@@ -101,7 +144,39 @@ export function JobRunDetails() {
         >
           View Logs
         </Button>
+        
+        {/* Job Control Buttons */}
+        {canPause && (
+          <Button
+            variant="contained"
+            color="warning"
+            startIcon={controlLoading ? <CircularProgress size={16} /> : <PauseIcon />}
+            onClick={handlePause}
+            disabled={controlLoading}
+          >
+            Pause
+          </Button>
+        )}
+        
+        {canResume && (
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={controlLoading ? <CircularProgress size={16} /> : <PlayArrowIcon />}
+            onClick={handleResume}
+            disabled={controlLoading}
+          >
+            Resume
+          </Button>
+        )}
       </Box>
+
+      {/* Control Error Alert */}
+      {controlError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setControlError(null)}>
+          {controlError}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {/* Job Run Information */}
@@ -191,6 +266,16 @@ export function JobRunDetails() {
                     }
                   </Typography>
                 </Box>
+                {jobRun.paused_at && (
+                  <Box>
+                    <Typography variant="subtitle2" color="textSecondary">
+                      Paused At
+                    </Typography>
+                    <Typography variant="body2">
+                      {new Date(jobRun.paused_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                )}
                 <Box>
                   <Typography variant="subtitle2" color="textSecondary">
                     Duration
