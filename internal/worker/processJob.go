@@ -9,24 +9,22 @@ import (
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 	"github.com/b0nbon1/stratal/pkg/utils"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/redis/go-redis/v9"
 )
 
  func (w *Worker) ProcessNextJob() {
 	fmt.Println("Worker polling for jobs...")
 
-	jobRunId, err := w.q.Dequeue()
-	if err != nil {
-		if err == redis.Nil {
-			fmt.Println("No jobs available for processing")
-			time.Sleep(20 * time.Second)
-			return
-		}
+	msgID, values, err := w.q.Dequeue(5 * time.Second)
+    if err != nil {
+        fmt.Println("Error dequeue:", err)
+        return
+    }
+    if msgID == "" {
+        return
+    }
 
-		fmt.Printf("Error dequeuing job_run: %v\n", err)
-		time.Sleep(time.Second)
-		return
-	}
+    jobRunId := values["job_run_id"].(string)
+    fmt.Println("Processing job:", jobRunId)
 
 	if jobRunId == "" {
 		fmt.Println("No job_run to process")

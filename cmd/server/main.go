@@ -27,7 +27,7 @@ func main() {
 	defer pool.Close()
 	store := db.NewStore(pool)
 
-	q := queue.NewRedisQueue(cfg, "job_runs")
+	q := queue.NewRedisQueue(cfg, "job_runs", "workers", 3)
 
 
 	hs := api.NewHTTPServer(cfg.Server.Address(), store.(*db.SQLStore), q, secretManager)

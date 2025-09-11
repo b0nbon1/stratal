@@ -34,7 +34,7 @@ func main() {
 	defer pool.Close()
 
 	store := db.NewStore(pool)
-	q := queue.NewRedisQueue(cfg, "job_runs")
+	q := queue.NewRedisQueue(cfg, "job_runs", "workers", 3)
 
 	go scheduler.StartScheduler(q, store.(*db.SQLStore), ctx)
 
