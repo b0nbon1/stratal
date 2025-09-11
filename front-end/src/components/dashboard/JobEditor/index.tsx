@@ -9,36 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayCircle, Save, FileText, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { YamlEditor } from "./YamlEditor";
+import { YamlEditor } from "../YamlEditor";
+import JSONEditor from "./JSONEditor";
+import { CreateJobRequest, JobTask, TaskConfig, useCreateJob } from "@/hooks/api/useCreateJob";
 
-interface TaskConfig {
-  script: {
-    language: string;
-    code: string;
-  };
-  depends_on?: string[];
-}
-
-interface Task {
-  name: string;
-  type: string;
-  order: number;
-  config: TaskConfig;
-}
-
-interface Job {
-  name: string;
-  description: string;
-  source: string;
-  run_immediately: boolean;
-  tasks: Task[];
-}
-
-const defaultJob: Job = {
+const defaultJob: CreateJobRequest = {
   name: "New Job",
   description: "Job description",
   source: "api",
   run_immediately: false,
+  raw_payload: "",
   tasks: [
     {
       name: "example_task",
@@ -55,27 +35,22 @@ const defaultJob: Job = {
 };
 
 export function JobEditor() {
-  const [job, setJob] = useState<Job>(defaultJob);
+  const [job, setJob] = useState<CreateJobRequest>(defaultJob);
   const [selectedTask, setSelectedTask] = useState(0);
-  const [jsonContent, setJsonContent] = useState(JSON.stringify(job, null, 2));
   const { toast } = useToast();
+  const { mutateAsync, isPending } = useCreateJob();
 
-  const handleSave = () => {
-    toast({
-      title: "Job Configuration Saved",
-      description: "Your job configuration has been saved successfully.",
-    });
+  const handleSave = async() => {
+    await mutateAsync(job);
   };
 
-  const handleRunJob = () => {
-    toast({
-      title: "Job Started",
-      description: "Your job has been queued and will start shortly.",
-    });
+  const handleRunJob = async () => {
+    job.run_immediately = true;
+    await mutateAsync(job);
   };
 
   const addTask = () => {
-    const newTask: Task = {
+    const newTask: JobTask = {
       name: `task_${job.tasks.length + 1}`,
       type: "custom",
       order: job.tasks.length + 1,
@@ -96,7 +71,7 @@ export function JobEditor() {
     }
   };
 
-  const updateTask = (index: number, field: keyof Task, value: any) => {
+  const updateTask = (index: number, field: keyof JobTask, value: any) => {
     setJob(prev => ({
       ...prev,
       tasks: prev.tasks.map((task, i) => 
@@ -130,16 +105,6 @@ export function JobEditor() {
         } : task
       )
     }));
-  };
-
-  const handleJsonChange = (value: string) => {
-    setJsonContent(value);
-    try {
-      const parsedJob = JSON.parse(value);
-      setJob(parsedJob);
-    } catch (error) {
-      // Invalid JSON, don't update the job
-    }
   };
 
   const UIEditor = () => (
@@ -305,41 +270,16 @@ export function JobEditor() {
     </div>
   );
 
-  const JSONEditor = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          JSON Configuration
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Textarea
-          value={jsonContent}
-          onChange={(e) => handleJsonChange(e.target.value)}
-          className="min-h-[500px] font-mono text-sm"
-          placeholder="Enter your JSON configuration here..."
-        />
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            <strong>Tip:</strong> Use valid JSON format to define your job configuration.
-            Changes will be reflected in the UI editor automatically.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Job Editor</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleSave}>
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={isPending}>
             <Save className="w-4 h-4 mr-2" />
             Save
           </Button>
-          <Button size="sm" onClick={handleRunJob} className="bg-gradient-to-r from-blue-500 to-purple-600">
+          <Button size="sm" onClick={handleRunJob} className="bg-gradient-to-r from-blue-500 to-purple-600" disabled={isPending}>
             <PlayCircle className="w-4 h-4 mr-2" />
             Run Job
           </Button>
@@ -358,7 +298,7 @@ export function JobEditor() {
         </TabsContent>
         
         <TabsContent value="json" className="space-y-4">
-          <JSONEditor />
+          <JSONEditor job={job} setJob={setJob} />
         </TabsContent>
         
         <TabsContent value="yaml" className="space-y-4">

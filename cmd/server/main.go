@@ -29,7 +29,6 @@ func main() {
 
 	q := queue.NewRedisQueue(cfg, "job_runs", "workers", 3)
 
-
 	hs := api.NewHTTPServer(cfg.Server.Address(), store.(*db.SQLStore), q, secretManager)
 
 	if err := hs.Start(); err != nil {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/b0nbon1/stratal/internal/api/middleware"
@@ -9,8 +10,11 @@ import (
 )
 
 func (hs *HTTPServer) registerRoutes() *router.Router {
-
+	fmt.Println("CORS middleware applied")
 	r := router.NewRouter()
+	fmt.Println("CORS middleware applied")
+	r.Use(middleware.CORSMiddleware)
+	fmt.Println("CORS middleware applied")
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 200, map[string]interface{}{
