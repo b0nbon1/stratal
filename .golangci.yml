@@ -1,0 +1,130 @@
+# golangci-lint configuration
+# Documentation: https://golangci-lint.run/usage/configuration/
+# Compatible with golangci-lint v2.6+
+
+version: '2'
+
+run:
+  timeout: 10m
+  tests: true
+  build-tags:
+    - integration
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  go: '1.25'
+
+output:
+  formats:
+    json:
+      path: stderr
+  show-stats: true
+
+linters:
+  enable:
+    # Core linters - enabled by default
+    - errcheck        # Checks for unchecked errors
+    - govet           # Reports suspicious constructs
+    - ineffassign     # Detects ineffectual assignments
+    - staticcheck     # Advanced Go linter
+    - unused          # Checks for unused constants, variables, functions and types
+
+    # Additional recommended linters
+    - asasalint       # Checks for pass []any as any in variadic func(...any)
+    - asciicheck      # Checks for non-ASCII identifiers
+    - bidichk         # Checks for dangerous unicode character sequences
+    - bodyclose       # Checks for HTTP response body closure
+    - containedctx    # Detects struct containing a context.Context
+    - contextcheck    # Checks context usage
+    - cyclop          # Checks cyclomatic complexity
+    - depguard        # Manages dependencies
+    - dogsled         # Checks for too many blank identifiers
+    - dupl            # Code duplication detection
+    - durationcheck   # Checks for time.Duration multiplication
+    - errname         # Checks error name formatting
+    - errorlint       # Enforces error wrapping
+    - exhaustive      # Checks exhaustiveness of enum switch statements
+    - forbidigo       # Forbids specific identifiers
+    - funlen          # Detects long functions
+    - gochecknoinits  # Checks for init functions
+    - gocognit        # Computes cognitive complexity
+    - goconst         # Finds repeated strings for constants
+    - gocritic        # Provides diagnostics with detailed output
+    - gocyclo         # Computes cyclomatic complexity
+    - goprintffuncname # Checks printf-like function names
+    - gosec           # Security-focused linter
+    - grouper         # Analyzes expression groups
+    - importas        # Enforces consistent import aliases
+    - interfacebloat  # Checks for interfaces with many methods
+    - lll             # Reports long lines
+    - loggercheck     # Checks logger usage
+    - makezero        # Finds slice declarations with non-zero length and capacity
+    - mirror          # Reports wrong mirror patterns
+    - misspell        # Finds misspelled English words
+    - mnd             # Detects magic numbers
+    - nakedret        # Finds naked returns
+    - nestif          # Reports deeply nested if statements
+    - nilerr          # Finds code returning nil with non-nil error
+    - nilnil          # Checks for simultaneous nil return
+    - noctx           # Finds HTTP requests without context
+    - nolintlint      # Reports ill-formed nolint directives
+    - nosprintfhostport # Checks for sprintf on host:port
+    - perfsprint      # Checks for inefficient string concatenation
+    - prealloc        # Suggests slice preallocation
+    - predeclared     # Finds code shadowing predeclared identifiers
+    - promlinter      # Checks Prometheus metrics
+    - protogetter     # Reports direct reads from proto messages
+    - reassign        # Checks for reassigning variables
+    - revive          # Fast, configurable, extensible, flexible linter
+    - rowserrcheck    # Checks for sql.Rows.Err errors
+    - sloglint        # Ensures consistent slog usage
+    - spancheck       # Checks span usage
+    - sqlclosecheck   # Checks sql.Rows/sql.Stmt closure
+    - tagliatelle     # Checks struct tag naming
+    - testableexamples # Checks if examples are testable
+    - testifylint     # Checks testify usage
+    - thelper         # Detects test helpers without t.Helper()
+    - tparallel       # Detects inappropriate t.Parallel() usage
+    - unconvert       # Removes unnecessary type conversions
+    - unparam         # Reports unused function parameters
+    - usestdlibvars   # Suggests using standard library constants
+    - wastedassign    # Finds wasted assignment statements
+    - whitespace      # Detects leading/trailing whitespace
+    - wrapcheck       # Checks error wrapping
+    - zerologlint     # Detects zerolog usage issues
+
+  disable:
+    # Too strict or opinionated
+    - exhaustruct
+    - forcetypeassert
+    - gochecknoglobals
+    - godot
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard
+    - ireturn
+    - nlreturn
+    - nonamedreturns
+    - paralleltest
+    - tagalign
+    - testpackage
+    - varnamelen
+    - wsl
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+  fix: false
+
+severity:
+  default: error
+  rules:
+    - linters:
+        - dupl
+        - lll
+      severity: warning
+    - linters:
+        - gosec
+        - errcheck
+      severity: error
