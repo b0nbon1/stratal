@@ -144,3 +144,17 @@ To transform Stratal into a comprehensive automation platform, the following enh
 5. **Job templates** - Create reusable job patterns
 
 These improvements will transform Stratal from a job orchestrator into a full-featured automation platform suitable for DevOps, data engineering, and general workflow automation needs.
+
+## Contributing
+
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or suggesting enhancements, your help is appreciated.
+
+Please read our [Contributing Guidelines](Contributing.md) for details on:
+- Setting up your development environment
+- Code style and standards
+- Submitting pull requests
+- Reporting bugs and requesting features
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -1,6 +1,6 @@
 module github.com/b0nbon1/stratal
 
-go 1.23.0
+go 1.25.0
 
 require (
 	github.com/caddyserver/certmagic v0.25.0
