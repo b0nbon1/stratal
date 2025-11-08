@@ -1,66 +1,16 @@
 package logger
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type LogType string
-
-const (
-	SystemLogType LogType = "system"
-	JobLogType    LogType = "job" 
-	TaskLogType   LogType = "task"
-)
-
-type LogLevel string
-
-const (
-	InfoLevel  LogLevel = "info"
-	ErrorLevel LogLevel = "error"
-	WarnLevel  LogLevel = "warn"
-	DebugLevel LogLevel = "debug"
-)
-
-type LogEntry struct {
-	Type      LogType
-	JobRunID  string
-	TaskRunID string
-	Level     LogLevel
-	Message   string
-	Timestamp time.Time
-	Stream    string // "stdout", "stderr", or "system"
-	Metadata  map[string]interface{}
-}
-
-type JobRunLogger struct {
-	jobRunID string
-	store    *db.SQLStore
-	logFile  *os.File
-	fileMux  sync.Mutex
-	dbMux    sync.Mutex
-	logger   *Logger // Add a reference to the main Logger
-}
-
-// Logger manages job run loggers
-type Logger struct {
-	store       *db.SQLStore
-	loggers     map[string]*JobRunLogger
-	loggersMux  sync.RWMutex
-	baseLogPath string
-	streamer    *LogStreamer
-}
-
+// NewLogger creates a new Logger instance
 func NewLogger(store *db.SQLStore, baseLogPath string) *Logger {
 	if baseLogPath == "" {
 		baseLogPath = "internal/storage/files/logs"
@@ -78,10 +28,12 @@ func NewLogger(store *db.SQLStore, baseLogPath string) *Logger {
 	}
 }
 
+// GetStreamer returns the log streamer for WebSocket/SSE connections
 func (l *Logger) GetStreamer() *LogStreamer {
 	return l.streamer
 }
 
+// LogSystem logs a system-level message
 func (l *Logger) LogSystem(level LogLevel, message string, metadata map[string]interface{}) {
 	entry := LogEntry{
 		Type:      SystemLogType,
@@ -108,31 +60,7 @@ func (l *Logger) LogSystem(level LogLevel, message string, metadata map[string]i
 	log.Printf("[SYSTEM] %s: %s", level, message)
 }
 
-func (l *Logger) writeSystemLogToDatabase(entry LogEntry) {
-	if l.store == nil {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	var metadataJSON []byte
-	if entry.Metadata != nil {
-		metadataJSON, _ = json.Marshal(entry.Metadata)
-	}
-
-	err := l.store.CreateSystemLog(ctx, db.CreateSystemLogParams{
-		Level:    string(entry.Level),
-		Stream:   entry.Stream,
-		Message:  entry.Message,
-		Metadata: metadataJSON,
-	})
-
-	if err != nil {
-		log.Printf("Failed to write system log to database: %v", err)
-	}
-}
-
+// GetJobRunLogger retrieves or creates a logger for a specific job run
 func (l *Logger) GetJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 	l.loggersMux.Lock()
 	defer l.loggersMux.Unlock()
@@ -150,6 +78,7 @@ func (l *Logger) GetJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 	return logger, nil
 }
 
+// createJobRunLogger creates a new JobRunLogger with its associated log file
 func (l *Logger) createJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 	now := time.Now()
 	filename := fmt.Sprintf("%s-%s.txt", jobRunID, now.Format("2006-01-02"))
@@ -168,6 +97,7 @@ func (l *Logger) createJobRunLogger(jobRunID string) (*JobRunLogger, error) {
 	}, nil
 }
 
+// CloseJobRunLogger closes and removes a job run logger
 func (l *Logger) CloseJobRunLogger(jobRunID string) {
 	l.loggersMux.Lock()
 	defer l.loggersMux.Unlock()
@@ -178,6 +108,7 @@ func (l *Logger) CloseJobRunLogger(jobRunID string) {
 	}
 }
 
+// Close closes all job run loggers
 func (l *Logger) Close() {
 	l.loggersMux.Lock()
 	defer l.loggersMux.Unlock()
@@ -188,38 +119,47 @@ func (l *Logger) Close() {
 	}
 }
 
+// LogJob logs a job-level message
 func (jrl *JobRunLogger) LogJob(level LogLevel, message string, metadata map[string]interface{}) {
 	jrl.logEntry(JobLogType, "", level, message, "system", metadata)
 }
 
+// LogTask logs a task-level message
 func (jrl *JobRunLogger) LogTask(taskRunID string, level LogLevel, message string, stream string, metadata map[string]interface{}) {
 	jrl.logEntry(TaskLogType, taskRunID, level, message, stream, metadata)
 }
 
+// Info logs an info-level job message
 func (jrl *JobRunLogger) Info(message string) {
 	jrl.LogJob(InfoLevel, message, nil)
 }
 
+// Error logs an error-level job message
 func (jrl *JobRunLogger) Error(message string) {
 	jrl.LogJob(ErrorLevel, message, nil)
 }
 
+// Warn logs a warning-level job message
 func (jrl *JobRunLogger) Warn(message string) {
 	jrl.LogJob(WarnLevel, message, nil)
 }
 
+// Debug logs a debug-level job message
 func (jrl *JobRunLogger) Debug(message string) {
 	jrl.LogJob(DebugLevel, message, nil)
 }
 
+// InfoWithTaskRun logs an info-level task message
 func (jrl *JobRunLogger) InfoWithTaskRun(taskRunID string, message string) {
 	jrl.LogTask(taskRunID, InfoLevel, message, "stdout", nil)
 }
 
+// ErrorWithTaskRun logs an error-level task message
 func (jrl *JobRunLogger) ErrorWithTaskRun(taskRunID string, message string) {
 	jrl.LogTask(taskRunID, ErrorLevel, message, "stderr", nil)
 }
 
+// logEntry is the core logging method that handles file, database, and streaming
 func (jrl *JobRunLogger) logEntry(logType LogType, taskRunID string, level LogLevel, message string, stream string, metadata map[string]interface{}) {
 	entry := LogEntry{
 		Type:      logType,
@@ -233,7 +173,6 @@ func (jrl *JobRunLogger) logEntry(logType LogType, taskRunID string, level LogLe
 	}
 
 	jrl.writeToFile(entry)
-
 	jrl.writeToDatabase(entry)
 
 	if jrl.logger != nil && jrl.logger.streamer != nil {
@@ -251,116 +190,7 @@ func (jrl *JobRunLogger) logEntry(logType LogType, taskRunID string, level LogLe
 	}
 }
 
-func (jrl *JobRunLogger) writeToFile(entry LogEntry) {
-	jrl.fileMux.Lock()
-	defer jrl.fileMux.Unlock()
-
-	if jrl.logFile == nil {
-		return
-	}
-
-	logLine := fmt.Sprintf("[%s] [%s] [%s] [%s] %s\n",
-		entry.Timestamp.Format("2006-01-02 15:04:05.000"),
-		entry.Type,
-		entry.Level,
-		entry.Stream,
-		entry.Message)
-
-	if _, err := jrl.logFile.WriteString(logLine); err != nil {
-		log.Printf("Failed to write to log file: %v", err)
-	}
-}
-
-func (jrl *JobRunLogger) writeToDatabase(entry LogEntry) {
-	jrl.dbMux.Lock()
-	defer jrl.dbMux.Unlock()
-
-	if jrl.store == nil {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	var metadataJSON []byte
-	if entry.Metadata != nil {
-		metadataJSON, _ = json.Marshal(entry.Metadata)
-	}
-
-	var jobRunUUID, taskRunUUID pgtype.UUID
-
-	if entry.JobRunID != "" {
-		if err := jobRunUUID.Scan(entry.JobRunID); err != nil {
-			log.Printf("Failed to parse job run ID %s: %v", entry.JobRunID, err)
-			return
-		}
-	}
-
-	if entry.TaskRunID != "" {
-		if err := taskRunUUID.Scan(entry.TaskRunID); err != nil {
-			log.Printf("Failed to parse task run ID %s: %v", entry.TaskRunID, err)
-			return
-		}
-	}
-
-	switch entry.Type {
-	case JobLogType:
-		err := jrl.store.CreateJobLog(ctx, db.CreateJobLogParams{
-			JobRunID: jobRunUUID,
-			Level:    string(entry.Level),
-			Stream:   entry.Stream,
-			Message:  entry.Message,
-			Metadata: metadataJSON,
-		})
-		if err != nil {
-			log.Printf("Failed to write job log to database: %v", err)
-		}
-
-	case TaskLogType:
-		err := jrl.store.CreateTaskLog(ctx, db.CreateTaskLogParams{
-			JobRunID:  jobRunUUID,
-			TaskRunID: taskRunUUID,
-			Level:     string(entry.Level),
-			Stream:    entry.Stream,
-			Message:   entry.Message,
-			Metadata:  metadataJSON,
-		})
-		if err != nil {
-			log.Printf("Failed to write task log to database: %v", err)
-		}
-
-	default:
-		err := jrl.store.CreateLog(ctx, db.CreateLogParams{
-			Type:      string(entry.Type),
-			JobRunID:  jobRunUUID,
-			TaskRunID: taskRunUUID,
-			Timestamp: pgtype.Timestamp{Time: entry.Timestamp, Valid: true},
-			Level:     string(entry.Level),
-			Stream:    entry.Stream,
-			Message:   entry.Message,
-			Metadata:  metadataJSON,
-		})
-		if err != nil {
-			log.Printf("Failed to write log to database: %v", err)
-		}
-	}
-}
-
-func (jrl *JobRunLogger) GetWriter(stream string) io.Writer {
-	return &logWriter{
-		logger: jrl,
-		stream: stream,
-	}
-}
-
-func (jrl *JobRunLogger) GetWriterForTaskRun(taskRunID, stream string) io.Writer {
-	return &taskLogWriter{
-		logger:    jrl,
-		stream:    stream,
-		taskRunID: taskRunID,
-	}
-}
-
+// Close closes the job run logger and its log file
 func (jrl *JobRunLogger) Close() {
 	jrl.fileMux.Lock()
 	defer jrl.fileMux.Unlock()
@@ -369,41 +199,4 @@ func (jrl *JobRunLogger) Close() {
 		jrl.logFile.Close()
 		jrl.logFile = nil
 	}
-}
-
-type logWriter struct {
-	logger *JobRunLogger
-	stream string
-}
-
-func (w *logWriter) Write(p []byte) (n int, err error) {
-	message := string(p)
-	if w.stream == "stderr" {
-		w.logger.LogJob(ErrorLevel, message, nil)
-	} else {
-		w.logger.LogJob(InfoLevel, message, nil)
-	}
-	return len(p), nil
-}
-
-type taskLogWriter struct {
-	logger    *JobRunLogger
-	stream    string
-	taskRunID string
-}
-
-func (w *taskLogWriter) Write(p []byte) (n int, err error) {
-	message := string(p)
-	if w.stream == "stderr" {
-		w.logger.LogTask(w.taskRunID, ErrorLevel, message, w.stream, nil)
-	} else {
-		w.logger.LogTask(w.taskRunID, InfoLevel, message, w.stream, nil)
-	}
-	return len(p), nil
-}
-
-func parseUUID(uuidStr string) (pgtype.UUID, error) {
-	var uuid pgtype.UUID
-	err := uuid.Scan(uuidStr)
-	return uuid, err
 }

@@ -1,3 +1,4 @@
 dump.rdb
 .env
 internal/storage/files/logs/*.txt
+*.out

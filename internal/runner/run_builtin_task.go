@@ -15,6 +15,8 @@ type TaskFunc func(ctx context.Context, params map[string]string) (string, error
 var taskRegistry = map[string]TaskFunc{
 	"send_email":   tasks.SendEmailTaskV2,
 	"http_request": tasks.HTTPRequestTask,
+	"format_output": tasks.FormatOutputTask,
+	"ssl_generate": tasks.SSLGenerateTask,
 }
 
 // RunBuiltinTask executes a builtin task by name with given parameters
