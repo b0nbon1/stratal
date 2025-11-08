@@ -128,4 +128,3 @@ func ExecuteTaskWithSecrets(ctx context.Context, task db.Task, store *db.SQLStor
 		return "", err
 	}
 }
-

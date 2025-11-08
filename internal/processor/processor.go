@@ -28,7 +28,6 @@ type TaskLevel struct {
 	Tasks []db.Task
 }
 
-
 func ProcessJob(ctx context.Context, store *db.SQLStore, secretManager *security.SecretManager, jobRunID pgtype.UUID, job db.GetJobWithTasksRow, jobLogger *logger.JobRunLogger) error {
 	fmt.Printf("Processing job run: %s for job: %s\n", jobRunID.String(), job.ID.String())
 
@@ -96,14 +95,14 @@ func ProcessJob(ctx context.Context, store *db.SQLStore, secretManager *security
 			}
 			return fmt.Errorf("failed to check job run status: %w", checkErr)
 		}
-		
+
 		if currentJobRun.Status.String == "paused" {
 			if jobLogger != nil {
 				jobLogger.Info("Job run has been paused, stopping execution")
 			}
 			return nil // Exit gracefully without error
 		}
-		
+
 		fmt.Printf("Executing task: %s (type: %s)\n", task.Name, task.Type)
 		if jobLogger != nil {
 			jobLogger.Info(fmt.Sprintf("Executing task: %s (type: %s)", task.Name, task.Type))

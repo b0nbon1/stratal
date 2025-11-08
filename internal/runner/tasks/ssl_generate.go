@@ -50,7 +50,6 @@ func SSLGenerateTask(ctx context.Context, params map[string]string) (string, err
 	default:
 	}
 
-
 	// Configure key type
 	var keyTypeValue certmagic.KeyType
 	switch strings.ToLower(keyType) {
@@ -67,24 +66,24 @@ func SSLGenerateTask(ctx context.Context, params map[string]string) (string, err
 	default:
 		return "", fmt.Errorf("unsupported key type: %s (supported: rsa2048, rsa4096, p256, p384, ed25519)", keyType)
 	}
-	
+
 	// Create a custom config with our key generator
 	config := certmagic.NewDefault()
 	config.Storage = &certmagic.FileStorage{Path: storageDir}
 	config.KeySource = &certmagic.StandardKeyGenerator{
 		KeyType: keyTypeValue,
 	}
-	
+
 	// Create ACME issuer
 	acmeTemplate := certmagic.ACMEIssuer{
 		Email:  email,
 		Agreed: true,
 	}
-	
+
 	if staging {
 		acmeTemplate.CA = certmagic.LetsEncryptStagingCA
 	}
-	
+
 	acmeIssuer := certmagic.NewACMEIssuer(config, acmeTemplate)
 	config.Issuers = []certmagic.Issuer{acmeIssuer}
 
@@ -113,22 +112,22 @@ func SSLGenerateTask(ctx context.Context, params map[string]string) (string, err
 	if caEndpoint == "" {
 		caEndpoint = certmagic.LetsEncryptProductionCA
 	}
-	
+
 	for _, d := range domains {
 		// CertMagic stores certificates in a specific structure
 		certPath := filepath.Join(storageDir, "certificates", caEndpoint, d, d+".crt")
 		keyPath := filepath.Join(storageDir, "certificates", caEndpoint, d, d+".key")
-		
+
 		// Check if files exist, but don't fail if they're in a different location
 		// CertMagic might use a different internal structure
 		var actualCertPath, actualKeyPath string
-		
+
 		// Try to find the actual certificate files
 		err := filepath.Walk(filepath.Join(storageDir, "certificates"), func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return nil // Continue walking even if some paths fail
 			}
-			
+
 			if strings.Contains(path, d) {
 				if strings.HasSuffix(path, ".crt") || strings.HasSuffix(path, ".pem") {
 					actualCertPath = path
@@ -138,13 +137,13 @@ func SSLGenerateTask(ctx context.Context, params map[string]string) (string, err
 			}
 			return nil
 		})
-		
+
 		if err != nil {
 			// If we can't walk the directory, use the expected paths
 			actualCertPath = certPath
 			actualKeyPath = keyPath
 		}
-		
+
 		// If we couldn't find the files through walking, use expected paths
 		if actualCertPath == "" {
 			actualCertPath = certPath
@@ -152,7 +151,7 @@ func SSLGenerateTask(ctx context.Context, params map[string]string) (string, err
 		if actualKeyPath == "" {
 			actualKeyPath = keyPath
 		}
-		
+
 		certPaths = append(certPaths, fmt.Sprintf("Certificate: %s\nPrivate Key: %s", actualCertPath, actualKeyPath))
 	}
 

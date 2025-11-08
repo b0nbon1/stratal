@@ -99,4 +99,3 @@ func colorStatus(status int) string {
 		return code + " "
 	}
 }
-

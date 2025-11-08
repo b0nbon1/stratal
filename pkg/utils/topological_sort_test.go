@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 	"github.com/b0nbon1/stratal/internal/storage/db/dto"
+	db "github.com/b0nbon1/stratal/internal/storage/db/sqlc"
 )
 
 // Helper function to create a UUID from string

@@ -1,4 +1,6 @@
 dump.rdb
 .env
 internal/storage/files/logs/*.txt
-*.out
+coverage.out
+coverage.html
+*.log

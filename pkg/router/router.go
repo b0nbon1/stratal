@@ -73,15 +73,15 @@ func NewRouter() *Router {
 // ServeHTTP makes Router satisfy http.Handler
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Handle preflight requests (CORS OPTIONS)
-    if req.Method == http.MethodOptions {
-        // Run through middleware chain (so CORS headers get added)
-        h := chainMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            w.WriteHeader(http.StatusNoContent) // 204
-        }), r.middlewares...)
+	if req.Method == http.MethodOptions {
+		// Run through middleware chain (so CORS headers get added)
+		h := chainMiddlewares(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent) // 204
+		}), r.middlewares...)
 
-        h.ServeHTTP(w, req)
-        return
-    }
+		h.ServeHTTP(w, req)
+		return
+	}
 
 	// Try to find a matching route
 	if route, params := r.findMatchingRoute(req.Method, req.URL.Path); route != nil {

@@ -11,20 +11,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
- func (w *Worker) ProcessNextJob() {
+func (w *Worker) ProcessNextJob() {
 	fmt.Println("Worker polling for jobs...")
 
 	msgID, values, err := w.q.Dequeue(5 * time.Second)
-    if err != nil {
-        fmt.Println("Error dequeue:", err)
-        return
-    }
-    if msgID == "" {
-        return
-    }
+	if err != nil {
+		fmt.Println("Error dequeue:", err)
+		return
+	}
+	if msgID == "" {
+		return
+	}
 
-    jobRunId := values["job_run_id"].(string)
-    fmt.Println("Processing job:", jobRunId)
+	jobRunId := values["job_run_id"].(string)
+	fmt.Println("Processing job:", jobRunId)
 
 	if jobRunId == "" {
 		fmt.Println("No job_run to process")

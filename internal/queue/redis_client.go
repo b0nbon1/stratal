@@ -69,11 +69,11 @@ import (
 )
 
 type RedisQueue struct {
-	client    *redis.Client
-	stream    string
-	group     string
-	consumer  string
-	ctx       context.Context
+	client     *redis.Client
+	stream     string
+	group      string
+	consumer   string
+	ctx        context.Context
 	maxRetries int
 }
 
@@ -94,11 +94,11 @@ func NewRedisQueue(cfg *config.Config, stream, group string, maxRetries int) *Re
 	consumer := fmt.Sprintf("%s-%d", hostname, os.Getpid())
 
 	return &RedisQueue{
-		client:    rdb,
-		stream:    stream,
-		group:     group,
-		consumer:  consumer,
-		ctx:       ctx,
+		client:     rdb,
+		stream:     stream,
+		group:      group,
+		consumer:   consumer,
+		ctx:        ctx,
 		maxRetries: maxRetries,
 	}
 }
@@ -192,12 +192,12 @@ func (rq *RedisQueue) MoveToDeadLetter(values map[string]interface{}) error {
 // ReclaimStuckJobs finds unacked jobs idle > idleTimeout and reclaims them
 func (rq *RedisQueue) ReclaimStuckJobs(idleTimeout time.Duration) {
 	pending, err := rq.client.XPendingExt(rq.ctx, &redis.XPendingExtArgs{
-		Stream:   rq.stream,
-		Group:    rq.group,
-		Idle:     idleTimeout,
-		Count:    10,
-		Start:    "-",
-		End:      "+",
+		Stream: rq.stream,
+		Group:  rq.group,
+		Idle:   idleTimeout,
+		Count:  10,
+		Start:  "-",
+		End:    "+",
 	}).Result()
 
 	if err != nil {
@@ -217,4 +217,3 @@ func (rq *RedisQueue) ReclaimStuckJobs(idleTimeout time.Duration) {
 		}
 	}
 }
-

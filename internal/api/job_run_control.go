@@ -11,7 +11,7 @@ import (
 // PauseJobRun pauses a running or queued job run
 func (hs *HTTPServer) PauseJobRun(w http.ResponseWriter, r *http.Request) {
 	jobRunID := router.GetParam(r, "id")
-	
+
 	if jobRunID == "" {
 		respondError(w, 400, "Job run ID is required")
 		return
@@ -49,18 +49,18 @@ func (hs *HTTPServer) PauseJobRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, 200, map[string]interface{}{
-		"message": "Job run paused successfully",
-		"job_run_id": jobRunID,
-		"job_name": jobRun.JobName,
+		"message":         "Job run paused successfully",
+		"job_run_id":      jobRunID,
+		"job_name":        jobRun.JobName,
 		"previous_status": status,
-		"new_status": "paused",
+		"new_status":      "paused",
 	})
 }
 
 // ResumeJobRun resumes a paused job run
 func (hs *HTTPServer) ResumeJobRun(w http.ResponseWriter, r *http.Request) {
 	jobRunID := router.GetParam(r, "id")
-	
+
 	if jobRunID == "" {
 		respondError(w, 400, "Job run ID is required")
 		return
@@ -112,11 +112,11 @@ func (hs *HTTPServer) ResumeJobRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, 200, map[string]interface{}{
-		"message": "Job run resumed successfully",
-		"job_run_id": jobRunID,
-		"job_name": jobRun.JobName,
+		"message":         "Job run resumed successfully",
+		"job_run_id":      jobRunID,
+		"job_name":        jobRun.JobName,
 		"previous_status": "paused",
-		"new_status": newStatus,
+		"new_status":      newStatus,
 	})
 }
 
@@ -130,6 +130,6 @@ func (hs *HTTPServer) GetPausedJobRuns(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, 200, map[string]interface{}{
 		"paused_job_runs": pausedJobRuns,
-		"count": len(pausedJobRuns),
+		"count":           len(pausedJobRuns),
 	})
 }

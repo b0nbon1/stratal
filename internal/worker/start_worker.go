@@ -11,11 +11,11 @@ import (
 )
 
 type Worker struct {
-	ctx          context.Context
-	q           queue.TaskQueue
-	store      *db.SQLStore
+	ctx           context.Context
+	q             queue.TaskQueue
+	store         *db.SQLStore
 	secretManager *security.SecretManager
-	logSystem  *logger.Logger
+	logSystem     *logger.Logger
 }
 
 func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, secretManager *security.SecretManager) {
@@ -23,11 +23,11 @@ func StartWorker(ctx context.Context, q queue.TaskQueue, store *db.SQLStore, sec
 	defer logSystem.Close()
 
 	worker := &Worker{
-		ctx:          ctx,
-		q:           q,
-		store:      store,
+		ctx:           ctx,
+		q:             q,
+		store:         store,
 		secretManager: secretManager,
-		logSystem:  logSystem,
+		logSystem:     logSystem,
 	}
 
 	go worker.Start()

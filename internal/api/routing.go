@@ -36,7 +36,7 @@ func (hs *HTTPServer) registerRoutes() *router.Router {
 	v1.Post("/job-runs", hs.CreateJobRun)
 	v1.Get("/job-runs", hs.GetJobRun)
 	v1.Get("/job-runs/:id", hs.GetJobRun)
-	
+
 	// Job run control endpoints
 	v1.Post("/job-runs/:id/pause", hs.PauseJobRun)
 	v1.Post("/job-runs/:id/resume", hs.ResumeJobRun)
